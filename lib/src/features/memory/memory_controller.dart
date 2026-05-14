@@ -41,6 +41,8 @@ final resurfacedMemoriesProvider = Provider<List<MemoryNote>>((ref) {
   }).toList(growable: false);
 });
 
+final thoughtDumpModeProvider = StateProvider<bool>((ref) => false);
+
 class MemoryController extends StateNotifier<List<MemoryNote>> {
   MemoryController(this._repository) : super(const []) {
     _load();
@@ -59,6 +61,16 @@ class MemoryController extends StateNotifier<List<MemoryNote>> {
     }
 
     await _repository.add(trimmed);
+    state = await _repository.getAll();
+  }
+
+  Future<void> updateMemory(String id, String text) async {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) {
+      return;
+    }
+
+    await _repository.update(id, trimmed);
     state = await _repository.getAll();
   }
 

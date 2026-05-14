@@ -7,6 +7,7 @@ import 'memory_note.dart';
 abstract class MemoryRepository {
   Future<List<MemoryNote>> getAll();
   Future<void> add(String text);
+  Future<void> update(String id, String text);
   Future<void> delete(String id);
 }
 
@@ -38,6 +39,18 @@ class HiveMemoryRepository implements MemoryRepository {
       updatedAt: now,
     );
     await _box.put(id, note.toMap());
+  }
+
+  @override
+  Future<void> update(String id, String text) async {
+    final existing = _box.get(id);
+    if (existing == null) {
+      return;
+    }
+
+    final previous = MemoryNote.fromMap(existing);
+    final updated = previous.copyWith(text: text, updatedAt: DateTime.now());
+    await _box.put(id, updated.toMap());
   }
 
   @override
