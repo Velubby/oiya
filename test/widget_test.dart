@@ -1,30 +1,78 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:oiya/main.dart';
+import 'package:oiya/src/app.dart';
+import 'package:oiya/src/features/memory/memory_note.dart';
+import 'package:oiya/src/features/memory/memory_repository.dart';
+import 'package:oiya/src/features/settings/theme_repository.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('quick capture stores and shows memory in home', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          memoryRepositoryProvider
+              .overrideWithValue(_InMemoryMemoryRepository()),
+          themeRepositoryProvider.overrideWithValue(_InMemoryThemeRepository()),
+        ],
+        child: const OiyaApp(),
+      ),
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+    await tester.tap(find.text('Capture'));
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    await tester.enterText(
+      find.byType(TextField).first,
+      'Parkir di basement B2',
+    );
+    await tester.tap(find.text('Simpan Memory'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Parkir di basement B2'), findsOneWidget);
   });
+}
+
+class _InMemoryMemoryRepository implements MemoryRepository {
+  final List<MemoryNote> _data = <MemoryNote>[];
+
+  @override
+  Future<void> add(String text) async {
+    final now = DateTime.now();
+    _data.add(
+      MemoryNote(
+        id: '${_data.length + 1}',
+        text: text,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+  }
+
+  @override
+  Future<void> delete(String id) async {
+    _data.removeWhere((element) => element.id == id);
+  }
+
+  @override
+  Future<List<MemoryNote>> getAll() async {
+    final items = List<MemoryNote>.from(_data)
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return items;
+  }
+}
+
+class _InMemoryThemeRepository implements ThemeRepository {
+  ThemeMode _mode = ThemeMode.system;
+
+  @override
+  Future<ThemeMode> loadThemeMode() async => _mode;
+
+  @override
+  Future<void> saveThemeMode(ThemeMode mode) async {
+    _mode = mode;
+  }
 }
