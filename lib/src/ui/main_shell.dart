@@ -42,7 +42,7 @@ class _QuickCaptureSheetState extends ConsumerState<_QuickCaptureSheet> {
       await ref.read(memoryControllerProvider.notifier).addMemory(text);
       if (!mounted) return;
       Navigator.of(context).pop();
-        _showCupertinoToast(context, 'Memory tersimpan.');
+      _showCupertinoToast(context, 'Memory tersimpan.');
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -57,7 +57,7 @@ class _QuickCaptureSheetState extends ConsumerState<_QuickCaptureSheet> {
         children: [
           const Row(
             children: [
-                Icon(CupertinoIcons.bolt_fill),
+              Icon(CupertinoIcons.bolt_fill),
               SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -152,7 +152,8 @@ class _MainShellState extends State<MainShell> {
             filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
             child: CupertinoNavigationBar(
               backgroundColor: scheme.surface.withOpacity(0.72),
-              middle: Text('OIYA', style: Theme.of(context).appBarTheme.titleTextStyle),
+              middle: Text('OIYA',
+                  style: Theme.of(context).appBarTheme.titleTextStyle),
               border: null,
             ),
           ),
@@ -184,11 +185,16 @@ class _MainShellState extends State<MainShell> {
                 backgroundColor: scheme.surface.withOpacity(0.78),
                 activeColor: scheme.primary,
                 items: const [
-                  BottomNavigationBarItem(icon: Icon(CupertinoIcons.home), label: 'Home'),
-                  BottomNavigationBarItem(icon: Icon(CupertinoIcons.bolt_fill), label: 'Capture'),
-                  BottomNavigationBarItem(icon: Icon(CupertinoIcons.search), label: 'Search'),
-                  BottomNavigationBarItem(icon: Icon(CupertinoIcons.time), label: 'Resurface'),
-                  BottomNavigationBarItem(icon: Icon(CupertinoIcons.settings), label: 'Settings'),
+                  BottomNavigationBarItem(
+                      icon: Icon(CupertinoIcons.home), label: 'Home'),
+                  BottomNavigationBarItem(
+                      icon: Icon(CupertinoIcons.bolt_fill), label: 'Capture'),
+                  BottomNavigationBarItem(
+                      icon: Icon(CupertinoIcons.search), label: 'Search'),
+                  BottomNavigationBarItem(
+                      icon: Icon(CupertinoIcons.time), label: 'Resurface'),
+                  BottomNavigationBarItem(
+                      icon: Icon(CupertinoIcons.settings), label: 'Settings'),
                 ],
                 onTap: _goToTab,
               ),
@@ -299,7 +305,6 @@ class _HomePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final memories = ref.watch(memoryControllerProvider);
-    final scheme = Theme.of(context).colorScheme;
 
     if (memories.isEmpty) {
       return Center(
@@ -307,7 +312,7 @@ class _HomePage extends ConsumerWidget {
           padding: const EdgeInsets.all(24),
           child: Container(
             padding: const EdgeInsets.all(24),
-              child: const Column(
+            child: const Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(CupertinoIcons.sparkles, size: 38),
@@ -377,15 +382,11 @@ class _CapturePageState extends ConsumerState<_CapturePage> {
     try {
       await ref.read(memoryControllerProvider.notifier).addMemory(text);
       _controller.clear();
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       final isThoughtDump = ref.read(thoughtDumpModeProvider);
       if (!isThoughtDump) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Memory tersimpan.')));
+        _showCupertinoToast(context, 'Memory tersimpan.');
         widget.onCaptureSaved();
       } else {
         _inputFocusNode.requestFocus();
@@ -569,9 +570,8 @@ class _SearchPage extends ConsumerWidget {
       child: Column(
         children: [
           CupertinoSearchTextField(
-            onChanged: (value) {
-              ref.read(searchQueryProvider.notifier).state = value;
-            },
+            onChanged: (value) =>
+                ref.read(searchQueryProvider.notifier).state = value,
             placeholder: 'Cari memory: flutter, parkir, belut...',
           ),
           const SizedBox(height: 10),
@@ -595,17 +595,26 @@ class _SearchPage extends ConsumerWidget {
           Expanded(
             child: results.isEmpty
                 ? const Center(child: Text('Tidak ada memory yang cocok.'))
-                : ListView.separated(
+                : ListView.builder(
+                    itemCount: results.length,
                     itemBuilder: (context, index) {
                       final memory = results[index];
-                      return _MemoryCard(
-                        memory: memory,
-                        onTap: () => _openEditDialog(context, ref, memory),
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _MemoryCard(
+                          memory: memory,
+                          onTap: () => _openEditDialog(context, ref, memory),
+                        ),
                       );
                     },
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemCount: results.length,
                   ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ResurfacePage extends ConsumerWidget {
   const _ResurfacePage();
 
@@ -749,7 +758,8 @@ class _SettingsPage extends ConsumerWidget {
                 child: Text('Dark'),
               ),
             },
-            onValueChanged: (value) => ref.read(themeModeProvider.notifier).setThemeMode(value),
+            onValueChanged: (value) =>
+                ref.read(themeModeProvider.notifier).setThemeMode(value),
           ),
         ),
         const Divider(height: 24),
@@ -762,7 +772,8 @@ class _SettingsPage extends ConsumerWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
-                  Text('Backup & Sync', style: TextStyle(fontWeight: FontWeight.w600)),
+                  Text('Backup & Sync',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
                   SizedBox(height: 2),
                   Text('Coming soon pada fase berikutnya.'),
                 ],
@@ -802,11 +813,13 @@ class _MemoryCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(memory.text, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text(memory.text,
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 6),
                   Text(
                     formatter.format(memory.createdAt),
-                    style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+                    style:
+                        TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
                   ),
                 ],
               ),
@@ -859,16 +872,15 @@ void _showCupertinoToast(BuildContext context, String message) {
     context: context,
     builder: (context) => Padding(
       padding: const EdgeInsets.fromLTRB(40, 0, 40, 80),
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.75),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(message, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white)),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: CupertinoColors.black.withOpacity(0.75),
+          borderRadius: BorderRadius.circular(12),
         ),
+        child: Text(message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: CupertinoColors.white)),
       ),
     ),
   );
