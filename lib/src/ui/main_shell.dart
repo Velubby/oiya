@@ -1,3 +1,6 @@
+import 'dart:ui';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -11,6 +14,96 @@ class MainShell extends StatefulWidget {
 
   @override
   State<MainShell> createState() => _MainShellState();
+}
+
+class _QuickCaptureSheet extends ConsumerStatefulWidget {
+  const _QuickCaptureSheet({super.key});
+
+  @override
+  ConsumerState<_QuickCaptureSheet> createState() => _QuickCaptureSheetState();
+}
+
+class _QuickCaptureSheetState extends ConsumerState<_QuickCaptureSheet> {
+  final TextEditingController _controller = TextEditingController();
+  bool _isSaving = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty || _isSaving) return;
+
+    setState(() => _isSaving = true);
+    try {
+      await ref.read(memoryControllerProvider.notifier).addMemory(text);
+      if (!mounted) return;
+      Navigator.of(context).pop();
+        _showCupertinoToast(context, 'Memory tersimpan.');
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Row(
+            children: [
+                Icon(CupertinoIcons.bolt_fill),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Quick Capture',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          CupertinoTextField(
+            controller: _controller,
+            autofocus: true,
+            minLines: 1,
+            maxLines: 6,
+            maxLength: 300,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _save(),
+            placeholder: 'Tulis cepat sebelum lupa...',
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
+                child: const Text('Batal'),
+              ),
+              const Spacer(),
+              CupertinoButton.filled(
+                onPressed: _isSaving ? null : _save,
+                child: _isSaving
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CupertinoActivityIndicator(radius: 9),
+                      )
+                    : const Text('Simpan'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _MainShellState extends State<MainShell> {
@@ -34,28 +127,39 @@ class _MainShellState extends State<MainShell> {
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
+      floatingActionButton: CupertinoButton.filled(
+        padding: const EdgeInsets.all(14),
+        borderRadius: BorderRadius.circular(32),
+        onPressed: () {
+          showModalBottomSheet<void>(
+            context: context,
+            isScrollControlled: true,
+            builder: (ctx) => Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              ),
+              child: const _QuickCaptureSheet(),
+            ),
+          );
+        },
+        child: const Icon(CupertinoIcons.bolt_fill),
+      ),
       extendBody: true,
-      appBar: AppBar(
-        title: ShaderMask(
-          shaderCallback:
-              (bounds) => LinearGradient(
-                colors: [scheme.primary, scheme.secondary],
-              ).createShader(bounds),
-          child: const Text('OIYA', style: TextStyle(color: Colors.white)),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(56),
+        child: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: CupertinoNavigationBar(
+              backgroundColor: scheme.surface.withOpacity(0.72),
+              middle: Text('OIYA', style: Theme.of(context).appBarTheme.titleTextStyle),
+              border: null,
+            ),
+          ),
         ),
       ),
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              scheme.primaryContainer.withOpacity(0.25),
-              scheme.secondaryContainer.withOpacity(0.2),
-              scheme.surface,
-            ],
-          ),
-        ),
+        color: scheme.surface,
         child: SafeArea(
           top: false,
           child: AnimatedSwitcher(
@@ -71,37 +175,24 @@ class _MainShellState extends State<MainShell> {
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(22),
-          child: NavigationBar(
-            selectedIndex: _currentIndex,
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home_rounded),
-                label: 'Home',
+          borderRadius: BorderRadius.circular(12),
+          child: ClipRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              child: CupertinoTabBar(
+                currentIndex: _currentIndex,
+                backgroundColor: scheme.surface.withOpacity(0.78),
+                activeColor: scheme.primary,
+                items: const [
+                  BottomNavigationBarItem(icon: Icon(CupertinoIcons.home), label: 'Home'),
+                  BottomNavigationBarItem(icon: Icon(CupertinoIcons.bolt_fill), label: 'Capture'),
+                  BottomNavigationBarItem(icon: Icon(CupertinoIcons.search), label: 'Search'),
+                  BottomNavigationBarItem(icon: Icon(CupertinoIcons.time), label: 'Resurface'),
+                  BottomNavigationBarItem(icon: Icon(CupertinoIcons.settings), label: 'Settings'),
+                ],
+                onTap: _goToTab,
               ),
-              NavigationDestination(
-                icon: Icon(Icons.flash_on_outlined),
-                selectedIcon: Icon(Icons.flash_on_rounded),
-                label: 'Capture',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.search),
-                selectedIcon: Icon(Icons.search_rounded),
-                label: 'Search',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.history),
-                selectedIcon: Icon(Icons.history_rounded),
-                label: 'Resurface',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.settings_outlined),
-                selectedIcon: Icon(Icons.settings_rounded),
-                label: 'Settings',
-              ),
-            ],
-            onDestinationSelected: _goToTab,
+            ),
           ),
         ),
       ),
@@ -117,25 +208,23 @@ class _HomePage extends ConsumerWidget {
     WidgetRef ref,
     MemoryNote memory,
   ) async {
-    final shouldDelete = await showDialog<bool>(
+    final shouldDelete = await showCupertinoDialog<bool>(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Hapus memory ini?'),
-            content: const Text(
-              'Aksi ini tidak bisa dibatalkan. Yakin mau hapus?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Batal'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Hapus'),
-              ),
-            ],
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Hapus memory ini?'),
+        content: const Text('Aksi ini tidak bisa dibatalkan. Yakin mau hapus?'),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Batal'),
           ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
     );
 
     if (shouldDelete != true || !context.mounted) {
@@ -145,8 +234,7 @@ class _HomePage extends ConsumerWidget {
     await _runWithBlockingLoader(
       context,
       message: 'Menghapus memory...',
-      action:
-          () => ref.read(memoryControllerProvider.notifier).deleteMemory(
+      action: () => ref.read(memoryControllerProvider.notifier).deleteMemory(
             memory.id,
           ),
     );
@@ -158,34 +246,39 @@ class _HomePage extends ConsumerWidget {
     MemoryNote memory,
   ) async {
     final controller = TextEditingController(text: memory.text);
-    final nextText = await showDialog<String>(
+    final nextText = await showCupertinoDialog<String>(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Edit memory'),
-            content: TextField(
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Edit memory'),
+        content: Column(
+          children: [
+            const SizedBox(height: 8),
+            CupertinoTextField(
               key: const ValueKey<String>('edit-memory-input'),
               controller: controller,
               autofocus: true,
               minLines: 3,
               maxLines: 6,
               maxLength: 500,
-              decoration: const InputDecoration(labelText: 'Isi memory'),
+              placeholder: 'Isi memory',
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Batal'),
-              ),
-              FilledButton(
-                onPressed:
-                    () => Navigator.of(context).pop(controller.text.trim()),
-                child: const Text('Simpan Perubahan'),
-              ),
-            ],
+          ],
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Batal'),
           ),
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+            child: const Text('Simpan Perubahan'),
+          ),
+        ],
+      ),
     );
-    controller.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.dispose();
+    });
 
     if (nextText == null ||
         nextText.isEmpty ||
@@ -197,10 +290,9 @@ class _HomePage extends ConsumerWidget {
     await _runWithBlockingLoader(
       context,
       message: 'Menyimpan perubahan...',
-      action:
-          () => ref
-              .read(memoryControllerProvider.notifier)
-              .updateMemory(memory.id, nextText),
+      action: () => ref
+          .read(memoryControllerProvider.notifier)
+          .updateMemory(memory.id, nextText),
     );
   }
 
@@ -215,15 +307,10 @@ class _HomePage extends ConsumerWidget {
           padding: const EdgeInsets.all(24),
           child: Container(
             padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: scheme.surface.withOpacity(0.8),
-              borderRadius: BorderRadius.circular(26),
-              border: Border.all(color: scheme.outlineVariant),
-            ),
-            child: const Column(
+              child: const Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.auto_awesome_rounded, size: 38),
+                Icon(CupertinoIcons.sparkles, size: 38),
                 SizedBox(height: 12),
                 Text(
                   'Belum ada memory. Buka tab Capture lalu simpan ide pertamamu.',
@@ -246,7 +333,7 @@ class _HomePage extends ConsumerWidget {
           trailing: IconButton(
             tooltip: 'Hapus memory',
             onPressed: () => _confirmDelete(context, ref, memory),
-            icon: const Icon(Icons.delete_outline),
+            icon: const Icon(CupertinoIcons.delete_simple),
           ),
         );
       },
@@ -325,10 +412,8 @@ class _CapturePageState extends ConsumerState<_CapturePage> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(22),
-              gradient: LinearGradient(
-                colors: [scheme.primaryContainer, scheme.secondaryContainer],
-              ),
+              borderRadius: BorderRadius.circular(16),
+              color: scheme.surfaceContainerHighest.withOpacity(0.6),
             ),
             child: Row(
               children: [
@@ -338,11 +423,10 @@ class _CapturePageState extends ConsumerState<_CapturePage> {
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                   ),
                 ),
-                Switch(
+                CupertinoSwitch(
                   value: isThoughtDump,
-                  onChanged: (value) {
-                    ref.read(thoughtDumpModeProvider.notifier).state = value;
-                  },
+                  onChanged: (value) =>
+                      ref.read(thoughtDumpModeProvider.notifier).state = value,
                 ),
               ],
             ),
@@ -350,7 +434,7 @@ class _CapturePageState extends ConsumerState<_CapturePage> {
           const SizedBox(height: 12),
           if (_isSaving) const LinearProgressIndicator(minHeight: 2.5),
           if (_isSaving) const SizedBox(height: 12),
-          TextField(
+          CupertinoTextField(
             key: const ValueKey<String>('capture-input'),
             controller: _controller,
             focusNode: _inputFocusNode,
@@ -360,35 +444,39 @@ class _CapturePageState extends ConsumerState<_CapturePage> {
             maxLength: 500,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _save(),
-            decoration: InputDecoration(
-              hintText:
-                  isThoughtDump
-                      ? 'Drop semua ide cepat di sini, enter untuk terus lanjut.'
-                      : 'Tulis cepat sebelum lupa... contoh: Parkir di basement B2',
-              labelText: isThoughtDump ? 'Thought Dump' : 'Quick Capture',
-            ),
+            placeholder: isThoughtDump
+                ? 'Drop semua ide cepat di sini, enter untuk terus lanjut.'
+                : 'Tulis cepat sebelum lupa... contoh: Parkir di basement B2',
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           ),
           const SizedBox(height: 4),
           SizedBox(
             width: double.infinity,
-            child: FilledButton.icon(
+            child: CupertinoButton.filled(
               onPressed: _isSaving ? null : _save,
-              icon:
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
                   _isSaving
                       ? const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                      : Icon(
-                        isThoughtDump ? Icons.send_rounded : Icons.save_outlined,
-                      ),
-              label: Text(
-                _isSaving
-                    ? 'Menyimpan...'
-                    : isThoughtDump
-                    ? 'Simpan & Lanjut'
-                    : 'Simpan Memory',
+                          height: 18,
+                          width: 18,
+                          child: CupertinoActivityIndicator(radius: 9),
+                        )
+                      : Icon(isThoughtDump
+                          ? CupertinoIcons.paperplane_fill
+                          : CupertinoIcons.check_mark),
+                  const SizedBox(width: 8),
+                  Text(
+                    _isSaving
+                        ? 'Menyimpan...'
+                        : isThoughtDump
+                            ? 'Simpan & Lanjut'
+                            : 'Simpan Memory',
+                  ),
+                ],
               ),
             ),
           ),
@@ -421,12 +509,14 @@ class _SearchPage extends ConsumerWidget {
     MemoryNote memory,
   ) async {
     final controller = TextEditingController(text: memory.text);
-    final nextText = await showDialog<String>(
+    final nextText = await showCupertinoDialog<String>(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Edit memory'),
-            content: TextField(
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Edit memory'),
+        content: Column(
+          children: [
+            const SizedBox(height: 8),
+            CupertinoTextField(
               key: const ValueKey<String>('search-edit-memory-input'),
               controller: controller,
               autofocus: true,
@@ -434,20 +524,23 @@ class _SearchPage extends ConsumerWidget {
               maxLines: 6,
               maxLength: 500,
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Batal'),
-              ),
-              FilledButton(
-                onPressed:
-                    () => Navigator.of(context).pop(controller.text.trim()),
-                child: const Text('Simpan Perubahan'),
-              ),
-            ],
+          ],
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Batal'),
           ),
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+            child: const Text('Simpan Perubahan'),
+          ),
+        ],
+      ),
     );
-    controller.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.dispose();
+    });
 
     if (nextText == null ||
         nextText.isEmpty ||
@@ -459,10 +552,9 @@ class _SearchPage extends ConsumerWidget {
     await _runWithBlockingLoader(
       context,
       message: 'Menyimpan perubahan...',
-      action:
-          () => ref
-              .read(memoryControllerProvider.notifier)
-              .updateMemory(memory.id, nextText),
+      action: () => ref
+          .read(memoryControllerProvider.notifier)
+          .updateMemory(memory.id, nextText),
     );
   }
 
@@ -476,14 +568,11 @@ class _SearchPage extends ConsumerWidget {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          TextField(
+          CupertinoSearchTextField(
             onChanged: (value) {
               ref.read(searchQueryProvider.notifier).state = value;
             },
-            decoration: const InputDecoration(
-              hintText: 'Cari memory: flutter, parkir, belut...',
-              prefixIcon: Icon(Icons.search),
-            ),
+            placeholder: 'Cari memory: flutter, parkir, belut...',
           ),
           const SizedBox(height: 10),
           Align(
@@ -504,27 +593,19 @@ class _SearchPage extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Expanded(
-            child:
-                results.isEmpty
-                    ? const Center(child: Text('Tidak ada memory yang cocok.'))
-                    : ListView.separated(
-                      itemBuilder: (context, index) {
-                        final memory = results[index];
-                        return _MemoryCard(
-                          memory: memory,
-                          onTap: () => _openEditDialog(context, ref, memory),
-                        );
-                      },
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemCount: results.length,
-                    ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
+            child: results.isEmpty
+                ? const Center(child: Text('Tidak ada memory yang cocok.'))
+                : ListView.separated(
+                    itemBuilder: (context, index) {
+                      final memory = results[index];
+                      return _MemoryCard(
+                        memory: memory,
+                        onTap: () => _openEditDialog(context, ref, memory),
+                      );
+                    },
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemCount: results.length,
+                  ),
 class _ResurfacePage extends ConsumerWidget {
   const _ResurfacePage();
 
@@ -534,12 +615,14 @@ class _ResurfacePage extends ConsumerWidget {
     MemoryNote memory,
   ) async {
     final controller = TextEditingController(text: memory.text);
-    final nextText = await showDialog<String>(
+    final nextText = await showCupertinoDialog<String>(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Edit memory'),
-            content: TextField(
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Edit memory'),
+        content: Column(
+          children: [
+            const SizedBox(height: 8),
+            CupertinoTextField(
               key: const ValueKey<String>('resurface-edit-memory-input'),
               controller: controller,
               autofocus: true,
@@ -547,20 +630,23 @@ class _ResurfacePage extends ConsumerWidget {
               maxLines: 6,
               maxLength: 500,
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Batal'),
-              ),
-              FilledButton(
-                onPressed:
-                    () => Navigator.of(context).pop(controller.text.trim()),
-                child: const Text('Simpan Perubahan'),
-              ),
-            ],
+          ],
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Batal'),
           ),
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+            child: const Text('Simpan Perubahan'),
+          ),
+        ],
+      ),
     );
-    controller.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.dispose();
+    });
 
     if (nextText == null ||
         nextText.isEmpty ||
@@ -572,10 +658,9 @@ class _ResurfacePage extends ConsumerWidget {
     await _runWithBlockingLoader(
       context,
       message: 'Menyimpan perubahan...',
-      action:
-          () => ref
-              .read(memoryControllerProvider.notifier)
-              .updateMemory(memory.id, nextText),
+      action: () => ref
+          .read(memoryControllerProvider.notifier)
+          .updateMemory(memory.id, nextText),
     );
   }
 
@@ -642,46 +727,48 @@ class _SettingsPage extends ConsumerWidget {
               'Theme',
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
             ),
-            subtitle: Text('Pilih vibe tampilan OIYA'),
+            subtitle: Text('Pilih vibe tampilan oiya'),
           ),
         ),
         const SizedBox(height: 12),
-        RadioListTile<ThemeMode>(
-          value: ThemeMode.system,
-          groupValue: themeMode,
-          title: const Text('System'),
-          onChanged: (value) {
-            if (value != null) {
-              ref.read(themeModeProvider.notifier).setThemeMode(value);
-            }
-          },
-        ),
-        RadioListTile<ThemeMode>(
-          value: ThemeMode.light,
-          groupValue: themeMode,
-          title: const Text('Light'),
-          onChanged: (value) {
-            if (value != null) {
-              ref.read(themeModeProvider.notifier).setThemeMode(value);
-            }
-          },
-        ),
-        RadioListTile<ThemeMode>(
-          value: ThemeMode.dark,
-          groupValue: themeMode,
-          title: const Text('Dark'),
-          onChanged: (value) {
-            if (value != null) {
-              ref.read(themeModeProvider.notifier).setThemeMode(value);
-            }
-          },
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+          child: CupertinoSegmentedControl<ThemeMode>(
+            groupValue: themeMode,
+            children: const {
+              ThemeMode.system: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Text('System'),
+              ),
+              ThemeMode.light: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Text('Light'),
+              ),
+              ThemeMode.dark: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Text('Dark'),
+              ),
+            },
+            onValueChanged: (value) => ref.read(themeModeProvider.notifier).setThemeMode(value),
+          ),
         ),
         const Divider(height: 24),
-        const ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: Icon(Icons.cloud_outlined),
-          title: Text('Backup & Sync'),
-          subtitle: Text('Coming soon pada fase berikutnya.'),
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: [
+              const Icon(CupertinoIcons.cloud),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text('Backup & Sync', style: TextStyle(fontWeight: FontWeight.w600)),
+                  SizedBox(height: 2),
+                  Text('Coming soon pada fase berikutnya.'),
+                ],
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -700,20 +787,36 @@ class _MemoryCard extends StatelessWidget {
     final formatter = DateFormat('dd MMM yyyy, HH:mm');
     final scheme = Theme.of(context).colorScheme;
 
-    return Card(
-      child: ListTile(
-        onTap: onTap,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        tileColor: scheme.surface.withOpacity(0.75),
-        title: Text(memory.text, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Text(
-            formatter.format(memory.createdAt),
-            style: TextStyle(color: scheme.onSurfaceVariant),
-          ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest.withOpacity(0.04),
+          borderRadius: BorderRadius.circular(14),
         ),
-        trailing: trailing,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(memory.text, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 6),
+                  Text(
+                    formatter.format(memory.createdAt),
+                    style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+            if (trailing != null) ...[
+              const SizedBox(width: 8),
+              trailing!,
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -724,26 +827,22 @@ Future<void> _runWithBlockingLoader(
   required String message,
   required Future<void> Function() action,
 }) async {
-  showDialog<void>(
+  showCupertinoDialog<void>(
     context: context,
     barrierDismissible: false,
-    builder:
-        (_) => WillPopScope(
-          onWillPop: () async => false,
-          child: AlertDialog(
-            content: Row(
-              children: [
-                const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2.4),
-                ),
-                const SizedBox(width: 14),
-                Expanded(child: Text(message)),
-              ],
-            ),
+    builder: (_) => CupertinoAlertDialog(
+      content: Row(
+        children: [
+          const SizedBox(
+            width: 22,
+            height: 22,
+            child: CupertinoActivityIndicator(radius: 11),
           ),
-        ),
+          const SizedBox(width: 14),
+          Expanded(child: Text(message)),
+        ],
+      ),
+    ),
   );
 
   try {
@@ -753,4 +852,27 @@ Future<void> _runWithBlockingLoader(
       Navigator.of(context).pop();
     }
   }
+}
+
+void _showCupertinoToast(BuildContext context, String message) {
+  showCupertinoModalPopup<void>(
+    context: context,
+    builder: (context) => Padding(
+      padding: const EdgeInsets.fromLTRB(40, 0, 40, 80),
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.75),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(message, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white)),
+        ),
+      ),
+    ),
+  );
+  Future.delayed(const Duration(milliseconds: 900), () {
+    if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+  });
 }

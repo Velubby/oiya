@@ -70,35 +70,41 @@ class OiyaApp extends ConsumerWidget {
     );
 
     return MaterialApp(
-      title: 'OIYA',
+      title: 'oiya',
       debugShowCheckedModeBanner: false,
       themeMode: themeMode,
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: lightScheme,
         scaffoldBackgroundColor: lightScheme.surface,
-        fontFamily: 'Roboto',
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+        platform: TargetPlatform.iOS,
+        // Minimalist iOS-like adjustments
         cardTheme: CardTheme(
           elevation: 0,
           margin: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           color: lightScheme.surface,
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: lightScheme.surface,
+          fillColor: lightScheme.surfaceContainerHighest.withOpacity(0.9),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide(color: lightScheme.outlineVariant),
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide(color: lightScheme.outlineVariant),
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide(color: lightScheme.primary, width: 1.6),
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+                color: lightScheme.primary.withOpacity(0.6), width: 1.2),
           ),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         ),
         appBarTheme: AppBarTheme(
           backgroundColor: Colors.transparent,
@@ -107,21 +113,23 @@ class OiyaApp extends ConsumerWidget {
           surfaceTintColor: Colors.transparent,
           titleTextStyle: TextStyle(
             color: lightScheme.onSurface,
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.3,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
           ),
         ),
+        // Prefer iOS system font when available (fallbacks included)
+        fontFamily: '.SF UI Text',
+        fontFamilyFallback: ['SF Pro Text', 'San Francisco', 'Roboto'],
         navigationBarTheme: NavigationBarThemeData(
-          backgroundColor: lightScheme.surface.withOpacity(0.92),
+          backgroundColor: lightScheme.surface.withOpacity(0.98),
           elevation: 0,
-          indicatorColor: lightScheme.primaryContainer,
+          indicatorColor: Colors.transparent,
           labelTextStyle: WidgetStateProperty.resolveWith(
             (states) => TextStyle(
-              fontWeight:
-                  states.contains(WidgetState.selected)
-                      ? FontWeight.w700
-                      : FontWeight.w500,
+              fontSize: 12,
+              fontWeight: states.contains(WidgetState.selected)
+                  ? FontWeight.w600
+                  : FontWeight.w400,
             ),
           ),
         ),
@@ -130,27 +138,33 @@ class OiyaApp extends ConsumerWidget {
         useMaterial3: true,
         colorScheme: darkScheme,
         scaffoldBackgroundColor: darkScheme.surface,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+        platform: TargetPlatform.iOS,
         cardTheme: CardTheme(
           elevation: 0,
           margin: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           color: darkScheme.surfaceContainerHighest,
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: darkScheme.surfaceContainerHighest,
+          fillColor: darkScheme.surfaceContainerHighest.withOpacity(0.95),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide(color: darkScheme.outlineVariant),
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide(color: darkScheme.outlineVariant),
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide(color: darkScheme.primary, width: 1.6),
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+                color: darkScheme.primary.withOpacity(0.6), width: 1.2),
           ),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         ),
         appBarTheme: AppBarTheme(
           backgroundColor: Colors.transparent,
@@ -159,21 +173,22 @@ class OiyaApp extends ConsumerWidget {
           surfaceTintColor: Colors.transparent,
           titleTextStyle: TextStyle(
             color: darkScheme.onSurface,
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.3,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
           ),
         ),
+        fontFamily: '.SF UI Text',
+        fontFamilyFallback: ['SF Pro Text', 'San Francisco', 'Roboto'],
         navigationBarTheme: NavigationBarThemeData(
-          backgroundColor: darkScheme.surface.withOpacity(0.92),
+          backgroundColor: darkScheme.surface.withOpacity(0.98),
           elevation: 0,
-          indicatorColor: darkScheme.primaryContainer,
+          indicatorColor: Colors.transparent,
           labelTextStyle: WidgetStateProperty.resolveWith(
             (states) => TextStyle(
-              fontWeight:
-                  states.contains(WidgetState.selected)
-                      ? FontWeight.w700
-                      : FontWeight.w500,
+              fontSize: 12,
+              fontWeight: states.contains(WidgetState.selected)
+                  ? FontWeight.w600
+                  : FontWeight.w400,
             ),
           ),
         ),
