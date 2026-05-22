@@ -9,19 +9,42 @@ final memoryControllerProvider =
   return MemoryController(repository);
 });
 
+enum SearchFilter { all, today, recent }
+final searchFilterProvider = StateProvider<SearchFilter>((ref) => SearchFilter.all);
+
 final searchQueryProvider = StateProvider<String>((ref) => '');
 
 final filteredMemoriesProvider = Provider<List<MemoryNote>>((ref) {
   final query = ref.watch(searchQueryProvider).trim().toLowerCase();
+  final filter = ref.watch(searchFilterProvider);
   final notes = ref.watch(memoryControllerProvider);
 
-  if (query.isEmpty) {
-    return notes;
+  Iterable<MemoryNote> filtered = notes;
+  if (query.isNotEmpty) {
+    filtered = filtered.where((note) => note.text.toLowerCase().contains(query));
   }
 
-  return notes
-      .where((note) => note.text.toLowerCase().contains(query))
-      .toList(growable: false);
+  final today = DateTime.now();
+  filtered = filtered.where((note) {
+    final noteDate = DateTime(
+      note.createdAt.year,
+      note.createdAt.month,
+      note.createdAt.day,
+    );
+    final currentDate = DateTime(today.year, today.month, today.day);
+    final daysAgo = currentDate.difference(noteDate).inDays;
+
+    switch (filter) {
+      case SearchFilter.all:
+        return true;
+      case SearchFilter.today:
+        return daysAgo == 0;
+      case SearchFilter.recent:
+        return daysAgo >= 0 && daysAgo <= 3;
+    }
+  });
+
+  return filtered.toList(growable: false);
 });
 
 final resurfacedMemoriesProvider = Provider<List<MemoryNote>>((ref) {

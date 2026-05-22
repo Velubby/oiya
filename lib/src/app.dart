@@ -12,61 +12,61 @@ class OiyaApp extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
     const lightScheme = ColorScheme(
       brightness: Brightness.light,
-      primary: Color(0xFF6D5EF9),
+      primary: Color(0xFF3A506B), // Midnight Indigo
       onPrimary: Color(0xFFFFFFFF),
-      secondary: Color(0xFFFF4DB8),
+      secondary: Color(0xFF7CA982), // Sage Green
       onSecondary: Color(0xFFFFFFFF),
       error: Color(0xFFBA1A1A),
       onError: Color(0xFFFFFFFF),
-      surface: Color(0xFFF8F7FF),
-      onSurface: Color(0xFF1A1730),
-      primaryContainer: Color(0xFFE6E2FF),
-      onPrimaryContainer: Color(0xFF251A6A),
-      secondaryContainer: Color(0xFFFFD8F0),
-      onSecondaryContainer: Color(0xFF3F002A),
-      tertiary: Color(0xFF2FD3C9),
-      onTertiary: Color(0xFF003734),
-      tertiaryContainer: Color(0xFFB7FFF8),
-      onTertiaryContainer: Color(0xFF00201E),
-      surfaceContainerHighest: Color(0xFFE8E5F5),
-      onSurfaceVariant: Color(0xFF47435A),
-      outline: Color(0xFF78738D),
-      outlineVariant: Color(0xFFC8C3DC),
-      shadow: Color(0xFF000000),
+      surface: Color(0xFFFAF9F6), // Alabaster White
+      onSurface: Color(0xFF1C2541), // Deep Indigo Ink
+      primaryContainer: Color(0xFF1C2541), // Deep Indigo Focus
+      onPrimaryContainer: Color(0xFFFFFFFF),
+      secondaryContainer: Color(0xFFFAF9F6), // Alabaster Canvas
+      onSecondaryContainer: Color(0xFF1C2541),
+      tertiary: Color(0xFF7CA982),
+      onTertiary: Color(0xFFFFFFFF),
+      tertiaryContainer: Color(0xFFF0F2F5), // Cool Mist
+      onTertiaryContainer: Color(0xFF1C2541),
+      surfaceContainerHighest: Color(0xFFF0F2F5),
+      onSurfaceVariant: Color(0xFF5C677D), // Muted Slate Grey
+      outline: Color(0xFFE2E8F0), // Cool Hairline
+      outlineVariant: Color(0xFFEDF2F7), // Cool Divider Soft
+      shadow: Color(0x1F1C2541), // drop shadow ~12% alpha soft indigo
       scrim: Color(0xFF000000),
-      inverseSurface: Color(0xFF2F2B45),
-      onInverseSurface: Color(0xFFF3EFFF),
-      inversePrimary: Color(0xFFC9C1FF),
-      surfaceTint: Color(0xFF6D5EF9),
+      inverseSurface: Color(0xFF1C2541),
+      onInverseSurface: Color(0xFFFAF9F6),
+      inversePrimary: Color(0xFF9EC1A3),
+      surfaceTint: Color(0xFF3A506B),
     );
     const darkScheme = ColorScheme(
       brightness: Brightness.dark,
-      primary: Color(0xFFC9C1FF),
-      onPrimary: Color(0xFF372C8A),
-      secondary: Color(0xFFFFA7DC),
-      onSecondary: Color(0xFF5D1143),
+      primary: Color(0xFF9EC1A3), // Pale Sage
+      onPrimary: Color(0xFF0B132B),
+      secondary: Color(0xFF80A1D4), // Lavender Slate
+      onSecondary: Color(0xFF0B132B),
       error: Color(0xFFFFB4AB),
       onError: Color(0xFF690005),
-      surface: Color(0xFF10101A),
-      onSurface: Color(0xFFE8E4F7),
-      primaryContainer: Color(0xFF4F42C1),
-      onPrimaryContainer: Color(0xFFE6E2FF),
-      secondaryContainer: Color(0xFF7B2C5D),
-      onSecondaryContainer: Color(0xFFFFD8F0),
-      tertiary: Color(0xFF74F8EE),
-      onTertiary: Color(0xFF003734),
-      tertiaryContainer: Color(0xFF00504B),
-      onTertiaryContainer: Color(0xFFB7FFF8),
-      surfaceContainerHighest: Color(0xFF2A2838),
-      onSurfaceVariant: Color(0xFFC9C3DD),
-      outline: Color(0xFF928BA8),
-      outlineVariant: Color(0xFF47435A),
+      surface: Color(0xFF0B132B), // Midnight Dark
+      onSurface: Color(0xFFF4F6F9), // Ice White Body
+      primaryContainer: Color(0xFF3A506B),
+      onPrimaryContainer: Color(0xFFFFFFFF),
+      secondaryContainer: Color(0xFF1C2541), // Deep Indigo Card
+      onSecondaryContainer: Color(0xFFF4F6F9),
+      tertiary: Color(0xFF80A1D4),
+      onTertiary: Color(0xFF0B132B),
+      tertiaryContainer: Color(0xFF1C2541),
+      onTertiaryContainer: Color(0xFFF4F6F9),
+      surfaceContainerHighest: Color(0xFF1C2541),
+      onSurfaceVariant: Color(0xFF8D99AE), // Muted Slate
+      outline: Color(0xFF3A506B),
+      outlineVariant: Color(0xFF1C2541),
       shadow: Color(0xFF000000),
       scrim: Color(0xFF000000),
-      inverseSurface: Color(0xFFE8E4F7),
-      onInverseSurface: Color(0xFF2F2B45),
-      inversePrimary: Color(0xFF6D5EF9),
-      surfaceTint: Color(0xFFC9C1FF),
+      inverseSurface: Color(0xFFFAF9F6),
+      onInverseSurface: Color(0xFF0B132B),
+      inversePrimary: Color(0xFF3A506B),
+      surfaceTint: Color(0xFF9EC1A3),
     );
 
     return MaterialApp(
@@ -79,32 +79,31 @@ class OiyaApp extends ConsumerWidget {
         scaffoldBackgroundColor: lightScheme.surface,
         visualDensity: VisualDensity.adaptivePlatformDensity,
         platform: TargetPlatform.iOS,
-        // Minimalist iOS-like adjustments
         cardTheme: CardTheme(
           elevation: 0,
           margin: EdgeInsets.zero,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18), // rounded.lg (18px)
+            side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.0), // hairline (E2E8F0)
+          ),
           color: lightScheme.surface,
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: lightScheme.surfaceContainerHighest.withOpacity(0.9),
+          fillColor: lightScheme.surface,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
+            borderRadius: BorderRadius.circular(9999), // rounded.pill
+            borderSide: const BorderSide(color: Color(0x14000000), width: 1.0), // rgba(0,0,0,0.08)
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
+            borderRadius: BorderRadius.circular(9999),
+            borderSide: const BorderSide(color: Color(0x14000000), width: 1.0),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-                color: lightScheme.primary.withOpacity(0.6), width: 1.2),
+            borderRadius: BorderRadius.circular(9999),
+            borderSide: const BorderSide(color: Color(0xFF3A506B), width: 2.0), // primary indigo focus outline
           ),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         ),
         appBarTheme: AppBarTheme(
           backgroundColor: Colors.transparent,
@@ -113,19 +112,20 @@ class OiyaApp extends ConsumerWidget {
           surfaceTintColor: Colors.transparent,
           titleTextStyle: TextStyle(
             color: lightScheme.onSurface,
+            fontFamily: 'Inter',
             fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
         ),
-        // Prefer iOS system font when available (fallbacks included)
-        fontFamily: '.SF UI Text',
-        fontFamilyFallback: ['SF Pro Text', 'San Francisco', 'Roboto'],
+        fontFamily: 'Inter',
+        fontFamilyFallback: const ['.SF UI Text', 'SF Pro Text', 'San Francisco', 'Roboto', 'system-ui', 'sans-serif'],
         navigationBarTheme: NavigationBarThemeData(
-          backgroundColor: lightScheme.surface.withOpacity(0.98),
+          backgroundColor: lightScheme.surface,
           elevation: 0,
           indicatorColor: Colors.transparent,
           labelTextStyle: WidgetStateProperty.resolveWith(
             (states) => TextStyle(
+              fontFamily: 'Inter',
               fontSize: 12,
               fontWeight: states.contains(WidgetState.selected)
                   ? FontWeight.w600
@@ -143,28 +143,28 @@ class OiyaApp extends ConsumerWidget {
         cardTheme: CardTheme(
           elevation: 0,
           margin: EdgeInsets.zero,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          color: darkScheme.surfaceContainerHighest,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18), // rounded.lg (18px)
+            side: const BorderSide(color: Color(0xFF1C2541), width: 1.0), // 1C2541
+          ),
+          color: darkScheme.secondaryContainer,
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: darkScheme.surfaceContainerHighest.withOpacity(0.95),
+          fillColor: darkScheme.surfaceContainerHighest,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
+            borderRadius: BorderRadius.circular(9999),
+            borderSide: const BorderSide(color: Color(0x1FFFFFFF), width: 1.0),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
+            borderRadius: BorderRadius.circular(9999),
+            borderSide: const BorderSide(color: Color(0x1FFFFFFF), width: 1.0),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-                color: darkScheme.primary.withOpacity(0.6), width: 1.2),
+            borderRadius: BorderRadius.circular(9999),
+            borderSide: const BorderSide(color: Color(0xFF9EC1A3), width: 2.0),
           ),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         ),
         appBarTheme: AppBarTheme(
           backgroundColor: Colors.transparent,
@@ -173,18 +173,20 @@ class OiyaApp extends ConsumerWidget {
           surfaceTintColor: Colors.transparent,
           titleTextStyle: TextStyle(
             color: darkScheme.onSurface,
+            fontFamily: 'Inter',
             fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
         ),
-        fontFamily: '.SF UI Text',
-        fontFamilyFallback: ['SF Pro Text', 'San Francisco', 'Roboto'],
+        fontFamily: 'Inter',
+        fontFamilyFallback: const ['.SF UI Text', 'SF Pro Text', 'San Francisco', 'Roboto', 'system-ui', 'sans-serif'],
         navigationBarTheme: NavigationBarThemeData(
-          backgroundColor: darkScheme.surface.withOpacity(0.98),
+          backgroundColor: darkScheme.surface,
           elevation: 0,
           indicatorColor: Colors.transparent,
           labelTextStyle: WidgetStateProperty.resolveWith(
             (states) => TextStyle(
+              fontFamily: 'Inter',
               fontSize: 12,
               fontWeight: states.contains(WidgetState.selected)
                   ? FontWeight.w600
