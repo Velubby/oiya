@@ -1245,17 +1245,7 @@ class _HabitList extends ConsumerWidget {
   Widget _buildStreakBadge(BuildContext context, WidgetRef ref, Reminder habit) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final streak = habit.streakCount;
-    final hasStreak = streak > 0;
-
-    final badgeColor = hasStreak
-        ? const Color(0xFFFF9500).withOpacity(0.12)
-        : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03));
-    final borderColor = hasStreak
-        ? const Color(0xFFFF9500).withOpacity(0.4)
-        : (isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.08));
-    final textColor = hasStreak
-        ? (isDark ? const Color(0xFFFFB340) : const Color(0xFFD67A00))
-        : (isDark ? OiyaStyles.bodyMuted : OiyaStyles.inkMuted48);
+    final style = _getStreakTierStyle(streak, isDark);
 
     return InkWell(
       onTap: () {
@@ -1266,21 +1256,29 @@ class _HabitList extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: badgeColor,
+          color: style.bgTint,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: borderColor, width: 1),
+          border: Border.all(color: style.borderTint, width: 1.5),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Opacity(
-              opacity: hasStreak ? 1.0 : 0.4,
-              child: const Text('🔥', style: TextStyle(fontSize: 12)),
-            ),
+            if (streak == 0)
+              Icon(
+                style.icon,
+                size: 13,
+                color: style.textColor.withOpacity(0.5),
+              )
+            else
+              _GradientIcon(
+                style.icon,
+                colors: style.gradientColors,
+                size: 13,
+              ),
             const SizedBox(width: 4),
             Text(
               '${streak}d',
-              style: OiyaStyles.finePrint(color: textColor).copyWith(
+              style: OiyaStyles.finePrint(color: style.textColor).copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -1300,18 +1298,21 @@ void _showHabitStreakDetailSheet(BuildContext context, WidgetRef ref, Reminder h
   );
 }
 
-class _HabitStreakDetailSheet extends StatelessWidget {
+class _HabitStreakDetailSheet extends ConsumerWidget {
   final Reminder habit;
 
   const _HabitStreakDetailSheet({required this.habit});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reminders = ref.watch(reminderControllerProvider);
+    final activeHabit = reminders.firstWhere((r) => r.id == habit.id, orElse: () => habit);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final today = DateTime.now();
     final todayStart = DateTime(today.year, today.month, today.day);
-    final streak = habit.streakCount;
+    final streak = activeHabit.streakCount;
     final hasStreak = streak > 0;
+    final style = _getStreakTierStyle(streak, isDark);
 
     // Generate past 14 days (ending today)
     final List<DateTime> past14Days = List.generate(14, (index) {
@@ -1322,8 +1323,8 @@ class _HabitStreakDetailSheet extends StatelessWidget {
     int completionsInLast14 = 0;
     int scheduledInLast14 = 0;
     for (final date in past14Days) {
-      if (habit.isCompletedOn(date)) completionsInLast14++;
-      if (habit.isScheduledFor(date)) scheduledInLast14++;
+      if (activeHabit.isCompletedOn(date)) completionsInLast14++;
+      if (activeHabit.isScheduledFor(date)) scheduledInLast14++;
     }
     final completionRate = scheduledInLast14 > 0
         ? (completionsInLast14 / scheduledInLast14 * 100).round()
@@ -1378,9 +1379,7 @@ class _HabitStreakDetailSheet extends StatelessWidget {
               color: isDark ? OiyaStyles.surfaceTile3 : OiyaStyles.surfacePearl,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: hasStreak 
-                    ? const Color(0xFFFF9500).withOpacity(0.3) 
-                    : (isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
+                color: style.borderTint,
                 width: 1.5,
               ),
             ),
@@ -1390,15 +1389,13 @@ class _HabitStreakDetailSheet extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: hasStreak 
-                        ? const Color(0xFFFF9500).withOpacity(0.15) 
-                        : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03)),
+                    color: style.bgTint,
                     shape: BoxShape.circle,
+                    border: Border.all(color: style.borderTint, width: 1.0),
                   ),
-                  child: Opacity(
-                    opacity: hasStreak ? 1.0 : 0.4,
-                    child: const Text('🔥', style: TextStyle(fontSize: 32)),
-                  ),
+                  child: streak == 0
+                      ? Icon(style.icon, size: 32, color: style.textColor.withOpacity(0.5))
+                      : _GradientIcon(style.icon, colors: style.gradientColors, size: 32),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -1406,18 +1403,16 @@ class _HabitStreakDetailSheet extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        habit.title,
+                        activeHabit.title,
                         style: OiyaStyles.lead(color: isDark ? Colors.white : OiyaStyles.ink).copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        hasStreak ? '$streak Day Streak!' : 'No active streak yet',
+                        hasStreak ? '$streak Day Streak! (${style.name})' : 'No active streak yet',
                         style: OiyaStyles.bodyStrong(
-                          color: hasStreak 
-                              ? (isDark ? const Color(0xFFFFB340) : const Color(0xFFD67A00))
-                              : OiyaStyles.bodyMuted,
+                          color: style.textColor,
                         ),
                       ),
                     ],
@@ -1439,7 +1434,7 @@ class _HabitStreakDetailSheet extends StatelessWidget {
                 child: _buildMetricTile(
                   context,
                   label: 'COMPLETIONS',
-                  value: '${habit.completedDates.length}',
+                  value: '${activeHabit.completedDates.length}',
                   subtext: 'Total days',
                 ),
               ),
@@ -1457,15 +1452,97 @@ class _HabitStreakDetailSheet extends StatelessWidget {
                 child: _buildMetricTile(
                   context,
                   label: 'SCHEDULE',
-                  value: habit.scheduleType.toUpperCase(),
-                  subtext: habit.scheduleType == 'weekly'
-                      ? '${habit.weeklyDays.length} days/week'
+                  value: activeHabit.scheduleType.toUpperCase(),
+                  subtext: activeHabit.scheduleType == 'weekly'
+                      ? '${activeHabit.weeklyDays.length} days/week'
                       : 'Prep schedule',
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 24),
+          // Streak Shields status
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isDark ? OiyaStyles.surfaceTile2 : OiyaStyles.surfacePearl,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const _GradientIcon(
+                      CupertinoIcons.shield_fill,
+                      colors: [Color(0xFF64D2FF), Color(0xFF0A84FF)],
+                      size: 20,
+                     ),
+                     const SizedBox(width: 10),
+                     Column(
+                       crossAxisAlignment: CrossAxisAlignment.start,
+                       children: [
+                         Text(
+                           'Streak Shields',
+                           style: OiyaStyles.captionStrong(color: isDark ? Colors.white : OiyaStyles.ink),
+                         ),
+                         const SizedBox(height: 2),
+                         Text(
+                           '${activeHabit.restoreChances} of 3 available',
+                           style: OiyaStyles.finePrint(color: isDark ? OiyaStyles.bodyMuted : OiyaStyles.inkMuted80),
+                         ),
+                       ],
+                     ),
+                  ],
+                ),
+                Row(
+                  children: List.generate(3, (idx) {
+                    final isAvailable = idx < activeHabit.restoreChances;
+                    return Padding(
+                      padding: const EdgeInsets.only(left: 4),
+                      child: isAvailable
+                          ? const _GradientIcon(
+                              CupertinoIcons.shield_fill,
+                              colors: [Color(0xFF64D2FF), Color(0xFF0A84FF)],
+                              size: 16,
+                            )
+                          : Icon(
+                              CupertinoIcons.shield,
+                              color: isDark ? Colors.white24 : Colors.black26,
+                              size: 16,
+                            ),
+                    );
+                  }),
+                ),
+              ],
+            ),
+          ),
+          if (activeHabit.streakCount == 0 && activeHabit.restoreChances > 0 && activeHabit.lastMissedScheduledDate != null) ...[
+            const SizedBox(height: 12),
+            OiyaButton(
+              label: 'Activate Shield & Restore Streak',
+              isPrimary: true,
+              onPressed: () async {
+                final missedDate = activeHabit.lastMissedScheduledDate!;
+                HapticFeedback.mediumImpact();
+                await ref.read(reminderControllerProvider.notifier).restoreStreak(activeHabit.id, missedDate);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Streak restored to ${activeHabit.streakCount + 1} days!'),
+                      backgroundColor: const Color(0xFF0A84FF),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+            ),
+          ],
+          const SizedBox(height: 24),
           // 14-day history grid
           Text(
             'LAST 14 DAYS',
@@ -1486,24 +1563,29 @@ class _HabitStreakDetailSheet extends StatelessWidget {
               final date = past14Days[index];
               final dayName = DateFormat('E').format(date).substring(0, 1);
               final dayNum = DateFormat('d').format(date);
-              final isCompleted = habit.isCompletedOn(date);
-              final isScheduled = habit.isScheduledFor(date);
+              final isCompleted = activeHabit.isCompletedOn(date);
+              final isScheduled = activeHabit.isScheduledFor(date);
               final isToday = date.year == todayStart.year && 
                               date.month == todayStart.month && 
                               date.day == todayStart.day;
+              final isRestored = activeHabit.isRestoredOn(date);
 
               Widget indicator;
               Color statusColor;
               if (isCompleted) {
-                statusColor = const Color(0xFF7CA982); // Green completed
+                statusColor = isRestored ? const Color(0xFF0A84FF) : const Color(0xFF7CA982);
                 indicator = Container(
                   width: 28,
                   height: 28,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF7CA982),
+                  decoration: BoxDecoration(
+                    color: statusColor,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(CupertinoIcons.checkmark, size: 14, color: Colors.white),
+                  child: Icon(
+                    isRestored ? CupertinoIcons.shield_fill : CupertinoIcons.checkmark,
+                    size: 14,
+                    color: Colors.white,
+                  ),
                 );
               } else if (isScheduled) {
                 if (isToday) {
@@ -1596,10 +1678,11 @@ class _HabitStreakDetailSheet extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildLegendItem(context, const Color(0xFF7CA982), '✓ Completed'),
-              _buildLegendItem(context, const Color(0xFFFF9500), '• Pending'),
-              _buildLegendItem(context, Colors.redAccent, '✕ Missed'),
-              _buildLegendItem(context, isDark ? Colors.white38 : Colors.black38, '- Off Day'),
+              _buildLegendItem(context, const Color(0xFF7CA982), 'Done'),
+              _buildLegendItem(context, const Color(0xFF0A84FF), 'Saved'),
+              _buildLegendItem(context, const Color(0xFFFF9500), 'Pending'),
+              _buildLegendItem(context, Colors.redAccent, 'Missed'),
+              _buildLegendItem(context, isDark ? Colors.white38 : Colors.black38, 'Off Day'),
             ],
           ),
           const SizedBox(height: 12),
@@ -3659,4 +3742,132 @@ class _SettingsRowState extends State<_SettingsRow> {
       child: rowContent,
     );
   }
+}
+
+class _GradientIcon extends StatelessWidget {
+  const _GradientIcon(
+    this.icon, {
+    required this.colors,
+    this.size = 24.0,
+  });
+
+  final IconData icon;
+  final List<Color> colors;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      shaderCallback: (Rect bounds) {
+        return LinearGradient(
+          colors: colors,
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ).createShader(bounds);
+      },
+      child: Icon(
+        icon,
+        size: size,
+        color: Colors.white,
+      ),
+    );
+  }
+}
+
+class _StreakTierStyle {
+  final String name;
+  final IconData icon;
+  final List<Color> gradientColors;
+  final Color bgTint;
+  final Color borderTint;
+  final Color textColor;
+
+  const _StreakTierStyle({
+    required this.name,
+    required this.icon,
+    required this.gradientColors,
+    required this.bgTint,
+    required this.borderTint,
+    required this.textColor,
+  });
+}
+
+_StreakTierStyle _getStreakTierStyle(int streak, bool isDark) {
+  if (streak <= 0) {
+    return _StreakTierStyle(
+      name: 'No Streak',
+      icon: CupertinoIcons.flame,
+      gradientColors: [
+        isDark ? Colors.white30 : Colors.black26,
+        isDark ? Colors.white30 : Colors.black26,
+      ],
+      bgTint: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02),
+      borderTint: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
+      textColor: isDark ? OiyaStyles.bodyMuted : OiyaStyles.inkMuted48,
+    );
+  }
+
+  if (streak < 7) {
+    return _StreakTierStyle(
+      name: 'Classic Flame',
+      icon: CupertinoIcons.flame_fill,
+      gradientColors: const [Color(0xFFFF453A), Color(0xFFFF9F0A)],
+      bgTint: const Color(0xFFFF9F0A).withOpacity(0.12),
+      borderTint: const Color(0xFFFF9F0A).withOpacity(0.35),
+      textColor: isDark ? const Color(0xFFFFD60A) : const Color(0xFFD67A00),
+    );
+  }
+
+  if (streak < 15) {
+    return _StreakTierStyle(
+      name: 'Ice Flame',
+      icon: CupertinoIcons.flame_fill,
+      gradientColors: const [Color(0xFF64D2FF), Color(0xFF0A84FF)],
+      bgTint: const Color(0xFF0A84FF).withOpacity(0.12),
+      borderTint: const Color(0xFF0A84FF).withOpacity(0.35),
+      textColor: isDark ? const Color(0xFF64D2FF) : const Color(0xFF0056B3),
+    );
+  }
+
+  if (streak < 30) {
+    return _StreakTierStyle(
+      name: 'Emerald Flame',
+      icon: CupertinoIcons.flame_fill,
+      gradientColors: const [Color(0xFF30D158), Color(0xFF00A86B)],
+      bgTint: const Color(0xFF30D158).withOpacity(0.12),
+      borderTint: const Color(0xFF30D158).withOpacity(0.35),
+      textColor: isDark ? const Color(0xFF30D158) : const Color(0xFF00754A),
+    );
+  }
+
+  if (streak < 50) {
+    return _StreakTierStyle(
+      name: 'Mystic Flame',
+      icon: CupertinoIcons.flame_fill,
+      gradientColors: const [Color(0xFFFF2D55), Color(0xFFBF5AF2)],
+      bgTint: const Color(0xFFBF5AF2).withOpacity(0.12),
+      borderTint: const Color(0xFFBF5AF2).withOpacity(0.35),
+      textColor: isDark ? const Color(0xFFE5A4FF) : const Color(0xFF861F9C),
+    );
+  }
+
+  if (streak < 100) {
+    return _StreakTierStyle(
+      name: 'Radiant Flame',
+      icon: CupertinoIcons.flame_fill,
+      gradientColors: const [Color(0xFFFFD60A), Color(0xFFFF9F0A)],
+      bgTint: const Color(0xFFFFD60A).withOpacity(0.12),
+      borderTint: const Color(0xFFFFD60A).withOpacity(0.4),
+      textColor: isDark ? const Color(0xFFFFD60A) : const Color(0xFFB8860B),
+    );
+  }
+
+  return _StreakTierStyle(
+    name: 'Cosmic Flame',
+    icon: CupertinoIcons.flame_fill,
+    gradientColors: const [Color(0xFFFF2D55), Color(0xFF00F5FF), Color(0xFFFFD60A)],
+    bgTint: const Color(0xFF00F5FF).withOpacity(0.15),
+    borderTint: const Color(0xFFFF2D55).withOpacity(0.4),
+    textColor: isDark ? const Color(0xFF00F5FF) : const Color(0xFFC71585),
+  );
 }

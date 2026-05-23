@@ -106,6 +106,35 @@ class ReminderController extends StateNotifier<List<Reminder>> {
 
   }
 
+  Future<void> restoreStreak(String id, DateTime missedDate) async {
+    final reminder = state.firstWhere((r) => r.id == id);
+    if (reminder.restoreChances <= 0) {
+      return;
+    }
+
+    final dateNormalized = DateTime(missedDate.year, missedDate.month, missedDate.day);
+    if (reminder.isCompletedOn(dateNormalized)) {
+      return;
+    }
+
+    final updatedCompletedDates = List<DateTime>.from(reminder.completedDates)
+      ..add(dateNormalized)
+      ..sort();
+
+    final updatedCompletedProofs = Map<String, String>.from(reminder.completedProofs);
+    final dateKey = "${dateNormalized.year}-${dateNormalized.month.toString().padLeft(2, '0')}-${dateNormalized.day.toString().padLeft(2, '0')}";
+    updatedCompletedProofs[dateKey] = "[RESTORED]";
+
+    final updatedReminder = reminder.copyWith(
+      completedDates: updatedCompletedDates,
+      completedProofs: updatedCompletedProofs,
+      restoreChances: reminder.restoreChances - 1,
+    );
+
+    await _repository.save(updatedReminder);
+    await _load();
+  }
+
   Future<void> deleteReminder(String id) async {
     await _repository.delete(id);
     await _load();

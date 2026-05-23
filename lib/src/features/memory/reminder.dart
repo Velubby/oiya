@@ -10,6 +10,7 @@ class Reminder {
     this.completedDates = const [], // Days this reminder was completed (normalized to YYYY-MM-DD)
     this.completedProofs = const {}, // Map of date string -> proof caption/text
     required this.createdAt,
+    this.restoreChances = 3,
   });
 
   final String id;
@@ -22,6 +23,7 @@ class Reminder {
   final List<DateTime> completedDates;
   final Map<String, String> completedProofs;
   final DateTime createdAt;
+  final int restoreChances;
 
   Reminder copyWith({
     String? id,
@@ -34,6 +36,7 @@ class Reminder {
     List<DateTime>? completedDates,
     Map<String, String>? completedProofs,
     DateTime? createdAt,
+    int? restoreChances,
   }) {
     return Reminder(
       id: id ?? this.id,
@@ -46,6 +49,7 @@ class Reminder {
       completedDates: completedDates ?? this.completedDates,
       completedProofs: completedProofs ?? this.completedProofs,
       createdAt: createdAt ?? this.createdAt,
+      restoreChances: restoreChances ?? this.restoreChances,
     );
   }
 
@@ -61,6 +65,7 @@ class Reminder {
       'completedDates': completedDates.map((d) => d.toIso8601String()).toList(),
       'completedProofs': completedProofs,
       'createdAt': createdAt.toIso8601String(),
+      'restoreChances': restoreChances,
     };
   }
 
@@ -82,6 +87,7 @@ class Reminder {
           .toList(),
       completedProofs: Map<String, String>.from(map['completedProofs'] ?? {}),
       createdAt: DateTime.parse(map['createdAt'] as String),
+      restoreChances: map['restoreChances'] as int? ?? 3,
     );
   }
 
@@ -204,5 +210,27 @@ class Reminder {
     }
 
     return 0;
+  }
+
+  /// Check if a given date was restored via Streak Shield
+  bool isRestoredOn(DateTime date) {
+    final local = date.toLocal();
+    final dateStr = "${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}";
+    return completedProofs[dateStr] == "[RESTORED]";
+  }
+
+  /// Find the most recent scheduled date that was missed before today
+  DateTime? get lastMissedScheduledDate {
+    final today = DateTime.now();
+    final todayStart = DateTime(today.year, today.month, today.day);
+
+    // Look back up to 30 days to find the most recent scheduled date that is not completed
+    for (int i = 1; i <= 30; i++) {
+      final date = todayStart.subtract(Duration(days: i));
+      if (isScheduledFor(date) && !isCompletedOn(date)) {
+        return date;
+      }
+    }
+    return null;
   }
 }
