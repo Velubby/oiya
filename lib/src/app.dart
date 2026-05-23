@@ -79,7 +79,7 @@ class OiyaApp extends ConsumerWidget {
         scaffoldBackgroundColor: lightScheme.surface,
         visualDensity: VisualDensity.adaptivePlatformDensity,
         platform: TargetPlatform.iOS,
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           elevation: 0,
           margin: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
@@ -140,7 +140,7 @@ class OiyaApp extends ConsumerWidget {
         scaffoldBackgroundColor: darkScheme.surface,
         visualDensity: VisualDensity.adaptivePlatformDensity,
         platform: TargetPlatform.iOS,
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           elevation: 0,
           margin: EdgeInsets.zero,
           shape: RoundedRectangleBorder(

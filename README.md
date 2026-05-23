@@ -1,120 +1,180 @@
-# OIYA - External Memory System
+# 🪐 OIYA — External Memory System
 
-A Flutter-based "external memory system" designed to help users quickly capture and remember important information. OIYA emphasizes simplicity, speed, and human-centered design.
+[![Flutter Version](https://img.shields.io/badge/Flutter-3.44.0+-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev)
+[![Dart Version](https://img.shields.io/badge/Dart-3.12.0+-0175C2?style=for-the-badge&logo=dart&logoColor=white)](https://dart.dev)
+[![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20Windows-000000?style=for-the-badge)](https://flutter.dev)
+[![License](https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge)](LICENSE)
 
-## Core Philosophy
+**OIYA** is a premium, retro-styled external memory system and interactive habit builder designed to help users capture thoughts, build consistent habits, and track schedules. Combining tactile retro elements (like a simulated Polaroid camera) with modern productivity mechanics (like Duolingo-style streaks and smart exam scheduling), OIYA focuses on speed, simplicity, and delight.
 
-- **Quick Capture**: Record thoughts in seconds before they're forgotten
-- **Thought Dump Mode**: Rapid entry of multiple ideas without organization pressure
-- **Smart Search**: Full-text search with context-aware results
-- **Auto Context**: The app learns from user patterns over time
-- **Memory Resurfacing**: Intelligent reminders of past thoughts at relevant moments
+---
 
-## Features Implemented
+## 🎨 Core Philosophy & Design
 
-### ✅ Core Features
-- **Quick Capture Screen**: Fast, focused text input with keyboard-first UX
-- **Memory List View**: Chronological display of all captured memories
-- **Smart Search**: Full-text search across all memories with instant results
-- **Memory Resurfacing**: Shows memories from 7, 14, and 30 days ago
-- **Theme Support**: Light, dark, and system theme modes with persistence
+* **Zero-Lag Capture**: Capture fleeting thoughts in seconds with a keyboard-first, frictionless interface.
+* **Tactile Interactions**: Immersive tactile and visual feedback including retro sound simulation concepts, realistic camera flash overlays, and custom light haptic feedback.
+* **Humorous Delight**: Simulates task verification with whimsical vector doodles instead of heavy binary storage, keeping the codebase ultra-efficient.
+* **Offline-First Privacy**: Your thoughts, schedules, and photos stay entirely on your device with local Hive DB storage.
 
-### ✅ Technical Stack
-- **Frontend**: Flutter + Material 3 Design
-- **State Management**: Flutter Riverpod
-- **Local Storage**: Hive (fast, embedded database)
-- **Utilities**: UUID for unique IDs, intl for internationalization
+---
 
-## Project Structure
+## 🚀 Key Feature Modules
+
+### 1. Memory Vault & Journal
+* **Quick Capture Panel**: Instantly log text memories, quotes, or thoughts.
+* **Vault Stream**: Chronological feed of memories featuring full-text fuzzy search and custom date grouping.
+* **Memory Resurfacing**: An intelligent system that resurfaces notes from exactly 7, 14, and 30 days ago to reinforce past learnings.
+
+### 2. Gamified Habit Streak System
+* **Unified Activity Tracking**: Log a journal entry or complete a scheduled task to keep your daily streak alive.
+* **Card-Level Flame Badges**: Interactive `🔥 Xd` flame badges displayed on each habit card.
+* **Consistency Sheets**: Tapping a streak badge opens an analytical bottom sheet containing:
+  * **Completions Metric**: Lifetime completion count.
+  * **14-Day Completion Rate**: Total successful days divided by scheduled days.
+  * **Visual Calendar Grid**: A 2x7 color-coded matrix tracking the last 14 days:
+    * 🟢 **Checkmark (Green)**: Completed.
+    * 🟡 **Pulsing Dot (Orange)**: Pending today.
+    * 🔴 **Cross (Red)**: Missed scheduled day.
+    * ⚪ **Dash (Muted)**: Scheduled off-day.
+
+### 3. Retro Polaroid Proof Verification
+* **Simulated Retro Viewfinder**: Real-time camera guides, mock ISO / shutter speed metrics, active flash fading, and Polaroid print-out slide animations.
+* **Vector Doodle Renderer**: The app dynamically draws a vector representation of your task (e.g. draws a bed for `"Clean the bed"`, books for `"Study"`) as "Polaroid photos", keeping file size to minimal string coordinates.
+* **Convenience Bypass**: Skip the camera verification path at any time to mark the habit complete immediately.
+
+### 4. Smart Exam Prep Mode
+* **T-1 Day Scheduling**: Enter your exam dates, and OIYA automatically schedules prep habits exactly **1 day before** each exam date.
+* **Dynamic Calendar Feeds**: Interactive chips let you manage upcoming exam sessions with clean, real-time recalculations.
+
+---
+
+## 🛠️ Technology Stack & Architecture
+
+* **Framework**: [Flutter](https://flutter.dev) (v3.44.0 stable)
+* **State Management**: [Riverpod](https://riverpod.dev) (highly decoupled, reactive, testable provider tree)
+* **Database**: [Hive](https://pub.dev/packages/hive) (fast, type-safe, lightweight local key-value storage)
+* **Styling**: `OiyaStyles` vanilla design token system (Midnight Indigo palette, custom typography scale, dark mode compatibility)
+* **Formatting & Time**: [Intl](https://pub.dev/packages/intl) for locale-aware date styling.
+
+### Architecture Data Flow
+```mermaid
+graph TD
+    %% UI Layer
+    UI[Flutter Shell & Pages]
+    BottomSheet[Streak Details Sheet]
+    CameraView[RetroCameraView]
+    
+    %% Riverpod Controllers
+    MemoryCtrl[MemoryController]
+    ReminderCtrl[ReminderController]
+    ThemeCtrl[ThemeModeController]
+    
+    %% Repository Layer
+    MemRepo[HiveMemoryRepository]
+    RemRepo[HiveReminderRepository]
+    ThemeRepo[HiveThemeRepository]
+    
+    %% Local DB
+    Hive[(Hive Local Boxes)]
+
+    %% Connections
+    UI -->|Triggers Sheets| BottomSheet
+    UI -->|Captures Photo| CameraView
+    
+    UI -.->|Reads state| MemoryCtrl
+    UI -.->|Reads state| ReminderCtrl
+    UI -.->|Reads state| ThemeCtrl
+    
+    MemoryCtrl -->|Calls CRUD| MemRepo
+    ReminderCtrl -->|Calls CRUD| RemRepo
+    ThemeCtrl -->|Saves settings| ThemeRepo
+    
+    MemRepo -->|Read/Write| Hive
+    RemRepo -->|Read/Write| Hive
+    ThemeRepo -->|Read/Write| Hive
+```
+
+---
+
+## 📂 Repository Structure
 
 ```
 lib/
-├── main.dart                          # App initialization with Hive setup
-├── src/
-│   ├── app.dart                       # Material app root with theming
-│   ├── features/
-│   │   ├── memory/
-│   │   │   ├── memory_note.dart       # Memory data model
-│   │   │   ├── memory_repository.dart # Hive persistence layer
-│   │   │   └── memory_controller.dart # Riverpod state management
-│   │   └── settings/
-│   │       ├── theme_repository.dart  # Theme persistence
-│   │       └── theme_mode_controller.dart # Theme state
-│   └── ui/
-│       └── main_shell.dart            # UI shell with navigation
-│
+├── main.dart                          # Startup configuration, Hive adapters & DB migrations
+└── src/
+    ├── app.dart                       # Root Material/Cupertino app config and theme bindings
+    ├── features/
+    │   ├── memory/                    # Feature Core Layer
+    │   │   ├── memory_note.dart       # Note entity schemas
+    │   │   ├── memory_repository.dart # Hive adapters for notes
+    │   │   ├── memory_controller.dart # Note state state management
+    │   │   ├── reminder.dart          # Habit schemas (completion & schedule dates)
+    │   │   ├── reminder_repository.dart # Hive adapters for habits
+    │   │   ├── reminder_controller.dart # Habit & Exam scheduler controller
+    │   │   └── streak_controller.dart # Global streak computer
+    │   └── settings/
+    │       ├── theme_repository.dart  # Persisted theme configurations
+    │       └── theme_mode_controller.dart # Active theme switcher
+    └── ui/                            # View presentation layer
+        ├── main_shell.dart            # Main navigation shell, Tab Controllers, Streak Sheet
+        └── retro_camera_view.dart     # Mock retro lens viewfinder & doodle generator
 ```
 
-## Getting Started
+---
+
+## ⚡ Getting Started
 
 ### Prerequisites
-- Flutter SDK (3.5.4+)
-- Dart SDK
-- Android Studio or Xcode (for running on device/emulator)
 
-### Installation
+* [Flutter SDK](https://docs.flutter.dev/get-started/install) (`>= 3.44.0`)
+* [Dart SDK](https://dart.dev/get-started) (`>= 3.12.0`)
+* Active Android Emulator, iOS Simulator, or Desktop device.
 
-```bash
-# Get dependencies
-flutter pub get
+### Setup & Run
 
-# Run the app (adjust target as needed)
-flutter run -d <device>
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/your-username/oiya.git
+   cd oiya
+   ```
 
-# Examples:
-flutter run -d android     # Android emulator
-flutter run -d ios         # iOS simulator
-flutter run -d windows     # Windows desktop
-```
+2. **Retrieve dependencies:**
+   ```bash
+   flutter pub get
+   ```
 
-## Usage
+3. **Check environment status:**
+   ```bash
+   flutter doctor
+   ```
 
-### Quick Capture
-1. Navigate to the **Capture** tab
-2. Type your thought or memory
-3. Press **Simpan Memory** to save
+4. **Compile and run in debug mode:**
+   ```bash
+   # Run on any available device
+   flutter run
+   
+   # Specific targets
+   flutter run -d emulator-5554    # Target specific Android emulator
+   flutter run -d chrome           # Target Web client
+   flutter run -d windows          # Target Windows desktop App
+   ```
 
-### View Memories
-- **Home Tab**: Browse all memories in reverse chronological order
-- Tap on any memory card to view full details
+5. **Static Code Quality Checks:**
+   ```bash
+   flutter analyze
+   ```
 
-### Search Memories
-1. Go to the **Search** tab
-2. Type keywords to find relevant memories
-3. Instant full-text search across all memories
+---
 
-### Memory Resurfacing
-- Navigate to the **Resurface** tab
-- See memories from exactly 7, 14, or 30 days ago
-- Perfect for revisiting important past thoughts
+## 💾 Database Migrations & Cleanups
 
-### Change Theme
-- Go to **Settings** tab
-- Choose between System, Light, or Dark theme
+OIYA features a self-healing local database schema. To prevent debug mock completions from filling your clean Memory Vault, the app executes a light migration at launch:
+* Scans the `memories` box.
+* Trims out any entries containing Polaroid placeholder completion strings (e.g. `Verified Polaroid Proof` or `Polaroid #OIYA-`).
+* Keeps user-written memory notes completely untouched.
 
-## Future Enhancements (Phase 2+)
+---
 
-- [ ] Backup & Sync support (Firebase/Supabase)
-- [ ] Memory tagging and categorization
-- [ ] Rich text formatting
-- [ ] Audio/image attachments
-- [ ] Sharing memories
-- [ ] Collaborative features
-- [ ] Mobile & Web sync
+## 📄 License
 
-## Development Notes
-
-### Architecture Decisions
-- **Riverpod**: For reactive state management with testable, composable providers
-- **Hive**: For offline-first local storage with excellent performance
-- **Material 3**: Modern, accessible UI components
-
-### Key Providers
-- `memoryControllerProvider`: Main state holder for all memories
-- `filteredMemoriesProvider`: Computed search results
-- `resurfacedMemoriesProvider`: Memories at key intervals (7/14/30 days)
-- `themeModeProvider`: Current theme mode state
-
-## License
-
-Private project - All rights reserved.
+Proprietary Software. All rights reserved.
