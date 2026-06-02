@@ -3,7 +3,7 @@ class Reminder {
     required this.id,
     required this.title,
     required this.proofType, // 'none', 'text', 'image', 'video'
-    required this.scheduleType, // 'daily', 'weekly', 'exam'
+    required this.scheduleType, // 'daily', 'custom', 'exam', 'specific'
     this.weeklyDays = const [], // 1 = Mon, 7 = Sun
     this.examDates = const [], // Selected exam dates
     this.examPrepDates = const [], // Generated study sessions (1 day before each exam)
@@ -11,6 +11,8 @@ class Reminder {
     this.completedProofs = const {}, // Map of date string -> proof caption/text
     required this.createdAt,
     this.restoreChances = 3,
+    this.specificDate,
+    this.specificHour,
   });
 
   final String id;
@@ -24,6 +26,8 @@ class Reminder {
   final Map<String, String> completedProofs;
   final DateTime createdAt;
   final int restoreChances;
+  final DateTime? specificDate;
+  final int? specificHour;
 
   Reminder copyWith({
     String? id,
@@ -37,6 +41,8 @@ class Reminder {
     Map<String, String>? completedProofs,
     DateTime? createdAt,
     int? restoreChances,
+    DateTime? specificDate,
+    int? specificHour,
   }) {
     return Reminder(
       id: id ?? this.id,
@@ -50,6 +56,8 @@ class Reminder {
       completedProofs: completedProofs ?? this.completedProofs,
       createdAt: createdAt ?? this.createdAt,
       restoreChances: restoreChances ?? this.restoreChances,
+      specificDate: specificDate ?? this.specificDate,
+      specificHour: specificHour ?? this.specificHour,
     );
   }
 
@@ -66,15 +74,19 @@ class Reminder {
       'completedProofs': completedProofs,
       'createdAt': createdAt.toIso8601String(),
       'restoreChances': restoreChances,
+      'specificDate': specificDate?.toIso8601String(),
+      'specificHour': specificHour,
     };
   }
 
   static Reminder fromMap(Map<dynamic, dynamic> map) {
+    final rawScheduleType = map['scheduleType'] as String;
+    final scheduleType = rawScheduleType == 'weekly' ? 'custom' : rawScheduleType;
     return Reminder(
       id: map['id'] as String,
       title: map['title'] as String,
       proofType: map['proofType'] as String,
-      scheduleType: map['scheduleType'] as String,
+      scheduleType: scheduleType,
       weeklyDays: List<int>.from(map['weeklyDays'] ?? []),
       examDates: (map['examDates'] as List? ?? [])
           .map((d) => DateTime.parse(d as String))
@@ -88,6 +100,8 @@ class Reminder {
       completedProofs: Map<String, String>.from(map['completedProofs'] ?? {}),
       createdAt: DateTime.parse(map['createdAt'] as String),
       restoreChances: map['restoreChances'] as int? ?? 3,
+      specificDate: map['specificDate'] != null ? DateTime.parse(map['specificDate'] as String) : null,
+      specificHour: map['specificHour'] as int?,
     );
   }
 
@@ -97,7 +111,7 @@ class Reminder {
 
     if (scheduleType == 'daily') {
       return true;
-    } else if (scheduleType == 'weekly') {
+    } else if (scheduleType == 'custom') {
       return weeklyDays.contains(checkDate.weekday);
     } else if (scheduleType == 'exam') {
       // Scheduled 1 day before any exam date
@@ -105,6 +119,11 @@ class Reminder {
           prepDate.year == checkDate.year &&
           prepDate.month == checkDate.month &&
           prepDate.day == checkDate.day);
+    } else if (scheduleType == 'specific') {
+      if (specificDate == null) return false;
+      return specificDate!.year == checkDate.year &&
+          specificDate!.month == checkDate.month &&
+          specificDate!.day == checkDate.day;
     }
     return false;
   }
@@ -155,7 +174,7 @@ class Reminder {
       return streak;
     }
 
-    if (scheduleType == 'weekly') {
+    if (scheduleType == 'custom') {
       DateTime checkDate = hasCompletedToday ? today : yesterday;
       while (true) {
         final checkDateStr = "${checkDate.year}-${checkDate.month.toString().padLeft(2, '0')}-${checkDate.day.toString().padLeft(2, '0')}";
@@ -207,6 +226,12 @@ class Reminder {
         }
       }
       return streak;
+    }
+
+    if (scheduleType == 'specific') {
+      if (specificDate == null) return 0;
+      final specificStr = "${specificDate!.year}-${specificDate!.month.toString().padLeft(2, '0')}-${specificDate!.day.toString().padLeft(2, '0')}";
+      return normalizedDates.contains(specificStr) ? 1 : 0;
     }
 
     return 0;

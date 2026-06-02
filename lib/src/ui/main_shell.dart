@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -392,9 +393,8 @@ class _OiyaBottomNavigationBar extends StatelessWidget {
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: SafeArea(
             top: false,
-            child: Container(
-              height: 60,
-              padding: const EdgeInsets.symmetric(vertical: 6),
+            child: SizedBox(
+              height: 52,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: List.generate(items.length, (index) {
@@ -407,25 +407,12 @@ class _OiyaBottomNavigationBar extends StatelessWidget {
                         HapticFeedback.selectionClick();
                         onTap(index);
                       },
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            isSelected ? item.activeIcon : item.icon,
-                            color: isSelected ? activeColor : inactiveColor,
-                            size: 23,
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            item.label,
-                            style: OiyaStyles.navLink(
-                              color: isSelected ? activeColor : inactiveColor,
-                            ).copyWith(
-                              fontSize: 10,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                            ),
-                          ),
-                        ],
+                      child: Center(
+                        child: Icon(
+                          isSelected ? item.activeIcon : item.icon,
+                          color: isSelected ? activeColor : inactiveColor,
+                          size: 24,
+                        ),
                       ),
                     ),
                   );
@@ -526,13 +513,18 @@ class _HomePageState extends ConsumerState<_HomePage> {
     );
   }
 
-  void _handleCompleteHabit(BuildContext context, WidgetRef ref, Reminder habit) {
+  void _handleCompleteHabit(BuildContext context, WidgetRef ref, Reminder habit) async {
     if (habit.isCompletedOn(DateTime.now())) return;
+
+    final oldStreak = habit.streakCount;
 
     if (habit.proofType == 'none') {
       HapticFeedback.mediumImpact();
-      ref.read(reminderControllerProvider.notifier).completeReminder(habit.id);
-      _showCupertinoToast(context, 'Habit completed!');
+      await ref.read(reminderControllerProvider.notifier).completeReminder(habit.id);
+      if (context.mounted) {
+        _showCupertinoToast(context, 'Habit completed!');
+        _checkAndShowStreakPromotion(context, ref, habit.id, oldStreak);
+      }
     } else {
       showCupertinoModalPopup<void>(
         context: context,
@@ -552,6 +544,7 @@ class _HomePageState extends ConsumerState<_HomePage> {
                       onComplete: () {
                         Navigator.pop(context);
                         _showCupertinoToast(context, 'Habit completed and verified!');
+                        _checkAndShowStreakPromotion(context, ref, habit.id, oldStreak);
                       },
                     ),
                   ),
@@ -567,15 +560,18 @@ class _HomePageState extends ConsumerState<_HomePage> {
               ),
             ),
             CupertinoActionSheetAction(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(ctx);
                 HapticFeedback.mediumImpact();
-                ref.read(reminderControllerProvider.notifier).completeReminder(
+                await ref.read(reminderControllerProvider.notifier).completeReminder(
                       habit.id,
                       proofCaption: 'Completed directly (Skipped Polaroid)',
                       proofData: 'Checked directly',
                     );
-                _showCupertinoToast(context, 'Habit completed!');
+                if (context.mounted) {
+                  _showCupertinoToast(context, 'Habit completed!');
+                  _checkAndShowStreakPromotion(context, ref, habit.id, oldStreak);
+                }
               },
               child: const Text('Skip Photo & Mark Done'),
             ),
@@ -874,7 +870,7 @@ class _HomePageState extends ConsumerState<_HomePage> {
                             HapticFeedback.mediumImpact();
                             await ref.read(memoryControllerProvider.notifier).deleteMemory(memory.id);
                             if (context.mounted) {
-                              _showCupertinoToast(context, 'Memory terhapus.');
+                              _showCupertinoToast(context, 'Memory deleted.');
                             }
                           },
                           background: Container(
@@ -952,6 +948,7 @@ class _HabitList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final habits = ref.watch(activeRemindersForTodayProvider);
     final allHabits = ref.watch(reminderControllerProvider);
+    final examHabits = allHabits.where((r) => r.scheduleType == 'exam').toList();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
@@ -959,6 +956,8 @@ class _HabitList extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (examHabits.isNotEmpty)
+            _ExamPrepDashboard(examHabits: examHabits),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -1100,13 +1099,24 @@ class _HabitList extends ConsumerWidget {
                                       color: const Color(0x1F7CA982),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
-                                    child: Text(
-                                      '📷 POLAROID PROOF',
-                                      style: TextStyle(
-                                        fontSize: 8,
-                                        fontWeight: FontWeight.bold,
-                                        color: isDark ? OiyaStyles.primaryOnDark : OiyaStyles.primary,
-                                      ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          CupertinoIcons.camera_fill,
+                                          size: 8,
+                                          color: isDark ? OiyaStyles.primaryOnDark : OiyaStyles.primary,
+                                        ),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          'POLAROID PROOF',
+                                          style: TextStyle(
+                                            fontSize: 8,
+                                            fontWeight: FontWeight.bold,
+                                            color: isDark ? OiyaStyles.primaryOnDark : OiyaStyles.primary,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
@@ -1452,10 +1462,16 @@ class _HabitStreakDetailSheet extends ConsumerWidget {
                 child: _buildMetricTile(
                   context,
                   label: 'SCHEDULE',
-                  value: activeHabit.scheduleType.toUpperCase(),
-                  subtext: activeHabit.scheduleType == 'weekly'
+                  value: activeHabit.scheduleType == 'specific'
+                      ? 'ACTIVITY'
+                      : activeHabit.scheduleType.toUpperCase(),
+                  subtext: activeHabit.scheduleType == 'custom'
                       ? '${activeHabit.weeklyDays.length} days/week'
-                      : 'Prep schedule',
+                      : activeHabit.scheduleType == 'daily'
+                          ? 'Every day'
+                          : activeHabit.scheduleType == 'specific'
+                              ? _formatSpecificSchedule(activeHabit)
+                              : 'Prep schedule',
                 ),
               ),
             ],
@@ -1528,16 +1544,12 @@ class _HabitStreakDetailSheet extends ConsumerWidget {
               isPrimary: true,
               onPressed: () async {
                 final missedDate = activeHabit.lastMissedScheduledDate!;
+                final oldStreak = activeHabit.streakCount;
                 HapticFeedback.mediumImpact();
                 await ref.read(reminderControllerProvider.notifier).restoreStreak(activeHabit.id, missedDate);
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Streak restored to ${activeHabit.streakCount + 1} days!'),
-                      backgroundColor: const Color(0xFF0A84FF),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
+                  Navigator.of(context).pop(); // Dismiss bottom sheet
+                  _checkAndShowStreakPromotion(context, ref, activeHabit.id, oldStreak);
                 }
               },
             ),
@@ -1772,10 +1784,19 @@ class _CreateHabitSheetContent extends ConsumerStatefulWidget {
 class _CreateHabitSheetContentState extends ConsumerState<_CreateHabitSheetContent> {
   final TextEditingController _titleController = TextEditingController();
   String _proofType = 'none'; // 'none' or 'image'
-  String _scheduleType = 'daily'; // 'daily', 'weekly', 'exam'
+  String _scheduleType = 'daily'; // 'daily', 'custom', 'exam', 'specific'
 
   final List<int> _selectedWeeklyDays = [];
   final List<DateTime> _selectedExamDates = [];
+
+  DateTime? _selectedSpecificDate;
+  int? _selectedSpecificHour;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedSpecificDate = DateTime.now().add(const Duration(days: 1));
+  }
 
   @override
   void dispose() {
@@ -1835,17 +1856,133 @@ class _CreateHabitSheetContentState extends ConsumerState<_CreateHabitSheetConte
     }
   }
 
+  Future<void> _pickSpecificDate() async {
+    HapticFeedback.lightImpact();
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _selectedSpecificDate ?? DateTime.now().add(const Duration(days: 1)),
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+      builder: (context, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: OiyaStyles.primaryOnDark,
+                    onPrimary: OiyaStyles.ink,
+                    surface: OiyaStyles.surfaceTile1,
+                    onSurface: Colors.white,
+                  )
+                : const ColorScheme.light(
+                    primary: OiyaStyles.primary,
+                    onPrimary: Colors.white,
+                    surface: OiyaStyles.canvas,
+                    onSurface: OiyaStyles.ink,
+                  ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedDate != null) {
+      setState(() {
+        _selectedSpecificDate = DateTime(pickedDate.year, pickedDate.month, pickedDate.day);
+      });
+    }
+  }
+
+  Future<void> _pickSpecificHour() async {
+    HapticFeedback.lightImpact();
+    final pickedHour = await showCupertinoModalPopup<int>(
+      context: context,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return Container(
+          height: 250,
+          color: isDark ? OiyaStyles.surfaceTile1 : Colors.white,
+          child: SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                Container(
+                  height: 44,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  color: isDark ? OiyaStyles.surfaceTile2 : Colors.grey[100],
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      GestureDetector(
+                        onTap: () => Navigator.pop(ctx),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(ctx, _selectedSpecificHour ?? 9),
+                        child: Text(
+                          'Select',
+                          style: OiyaStyles.captionStrong(
+                            color: isDark ? OiyaStyles.primaryOnDark : OiyaStyles.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: CupertinoPicker(
+                    scrollController: FixedExtentScrollController(
+                      initialItem: _selectedSpecificHour ?? 9,
+                    ),
+                    itemExtent: 40,
+                    onSelectedItemChanged: (index) {
+                      _selectedSpecificHour = index;
+                    },
+                    children: List.generate(24, (index) {
+                      return Center(
+                        child: Text(
+                          '${index.toString().padLeft(2, '0')}:00',
+                          style: TextStyle(
+                            color: isDark ? Colors.white : Colors.black,
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (pickedHour != null) {
+      setState(() {
+        _selectedSpecificHour = pickedHour;
+      });
+    }
+  }
+
   Future<void> _save() async {
     final title = _titleController.text.trim();
     if (title.isEmpty) return;
 
-    if (_scheduleType == 'weekly' && _selectedWeeklyDays.isEmpty) {
-      _showCupertinoToast(context, 'Pilih minimal satu hari.');
+    if (_scheduleType == 'custom' && _selectedWeeklyDays.isEmpty) {
+      _showCupertinoToast(context, 'Please select at least one day.');
       return;
     }
 
     if (_scheduleType == 'exam' && _selectedExamDates.isEmpty) {
-      _showCupertinoToast(context, 'Tambahkan minimal satu tanggal ujian.');
+      _showCupertinoToast(context, 'Please add at least one exam date.');
+      return;
+    }
+
+    if (_scheduleType == 'specific' && _selectedSpecificDate == null) {
+      _showCupertinoToast(context, 'Please select a date.');
       return;
     }
 
@@ -1855,11 +1992,13 @@ class _CreateHabitSheetContentState extends ConsumerState<_CreateHabitSheetConte
           scheduleType: _scheduleType,
           weeklyDays: _selectedWeeklyDays,
           examDates: _selectedExamDates,
+          specificDate: _selectedSpecificDate,
+          specificHour: _selectedSpecificHour,
         );
 
     if (mounted) {
       Navigator.pop(context);
-      _showCupertinoToast(context, 'Habit berhasil dibuat!');
+      _showCupertinoToast(context, 'Habit created successfully!');
     }
   }
 
@@ -1899,7 +2038,7 @@ class _CreateHabitSheetContentState extends ConsumerState<_CreateHabitSheetConte
               GestureDetector(
                 onTap: () => Navigator.of(context).pop(),
                 child: Text(
-                  'Batal',
+                  'Cancel',
                   style: OiyaStyles.captionStrong(color: isDark ? OiyaStyles.primaryOnDark : OiyaStyles.primary),
                 ),
               ),
@@ -1937,7 +2076,7 @@ class _CreateHabitSheetContentState extends ConsumerState<_CreateHabitSheetConte
                 setState(() => _proofType = val);
               }),
               const SizedBox(width: 10),
-              _buildSegmentButton('image', '📷 Polaroid Photo', _proofType == 'image', (val) {
+              _buildSegmentButton('image', 'Polaroid Photo', _proofType == 'image', (val) {
                 setState(() => _proofType = val);
               }),
             ],
@@ -1952,13 +2091,121 @@ class _CreateHabitSheetContentState extends ConsumerState<_CreateHabitSheetConte
             children: [
               _buildScheduleSegment('daily', 'Daily', _scheduleType == 'daily'),
               const SizedBox(width: 8),
-              _buildScheduleSegment('weekly', 'Weekly', _scheduleType == 'weekly'),
+              _buildScheduleSegment('custom', 'Custom', _scheduleType == 'custom'),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _buildScheduleSegment('exam', 'Exam Prep', _scheduleType == 'exam'),
               const SizedBox(width: 8),
-              _buildScheduleSegment('exam', '🎓 Exam Prep', _scheduleType == 'exam'),
+              _buildScheduleSegment('specific', 'Activity Reminder', _scheduleType == 'specific'),
             ],
           ),
           const SizedBox(height: 20),
-          if (_scheduleType == 'weekly') ...[
+          if (_scheduleType == 'specific') ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'REMINDER DATE & TIME',
+                  style: OiyaStyles.captionStrong(color: isDark ? OiyaStyles.bodyMuted : OiyaStyles.inkMuted80),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark ? OiyaStyles.surfaceTile3 : OiyaStyles.surfacePearl,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Date:',
+                        style: OiyaStyles.bodyText(color: isDark ? Colors.white70 : OiyaStyles.ink),
+                      ),
+                      GestureDetector(
+                        onTap: _pickSpecificDate,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: isDark ? OiyaStyles.surfaceTile1 : Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isDark ? Colors.white10 : OiyaStyles.dividerSoft,
+                            ),
+                          ),
+                          child: Text(
+                            _selectedSpecificDate != null
+                                ? DateFormat('MMM dd, yyyy').format(_selectedSpecificDate!)
+                                : 'Select Date',
+                            style: OiyaStyles.captionStrong(
+                              color: isDark ? OiyaStyles.primaryOnDark : OiyaStyles.primary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Hour (Optional):',
+                        style: OiyaStyles.bodyText(color: isDark ? Colors.white70 : OiyaStyles.ink),
+                      ),
+                      Row(
+                        children: [
+                          if (_selectedSpecificHour != null) ...[
+                            GestureDetector(
+                              onTap: () => setState(() => _selectedSpecificHour = null),
+                              child: const Padding(
+                                padding: EdgeInsets.only(right: 8),
+                                child: Icon(
+                                  CupertinoIcons.clear_circled_solid,
+                                  size: 18,
+                                  color: Colors.redAccent,
+                                ),
+                              ),
+                            ),
+                          ],
+                          GestureDetector(
+                            onTap: _pickSpecificHour,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: isDark ? OiyaStyles.surfaceTile1 : Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isDark ? Colors.white10 : OiyaStyles.dividerSoft,
+                                ),
+                              ),
+                              child: Text(
+                                _selectedSpecificHour != null
+                                    ? '${_selectedSpecificHour!.toString().padLeft(2, '0')}:00'
+                                    : 'All Day / None',
+                                style: OiyaStyles.captionStrong(
+                                  color: isDark ? OiyaStyles.primaryOnDark : OiyaStyles.primary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+          if (_scheduleType == 'custom') ...[
             Text(
               'REPEAT DAYS',
               style: OiyaStyles.captionStrong(color: isDark ? OiyaStyles.bodyMuted : OiyaStyles.inkMuted80),
@@ -2231,7 +2478,7 @@ class _CapturePageState extends ConsumerState<_CapturePage> {
 
       final isThoughtDump = ref.read(thoughtDumpModeProvider);
       if (!isThoughtDump) {
-        _showCupertinoToast(context, 'Memory tersimpan.');
+        _showCupertinoToast(context, 'Memory saved.');
         widget.onCaptureSaved();
       } else {
         setState(() {
@@ -2291,8 +2538,8 @@ class _CapturePageState extends ConsumerState<_CapturePage> {
                       style: OiyaStyles.bodyText(color: isDark ? Colors.white : OiyaStyles.ink),
                       decoration: InputDecoration(
                         hintText: isThoughtDump
-                            ? 'Tulis cepat, klik Simpan untuk terus lanjut...'
-                            : 'Tulis ide, memo, atau catatan cepat...',
+                            ? 'Write quickly, click Save to continue...'
+                            : 'Write ideas, memos, or quick notes...',
                         hintStyle: TextStyle(
                           color: isDark ? Colors.white30 : Colors.black38,
                           fontSize: 16,
@@ -2623,7 +2870,7 @@ class _SearchPageState extends ConsumerState<_SearchPage> {
                             HapticFeedback.mediumImpact();
                             await ref.read(memoryControllerProvider.notifier).deleteMemory(memory.id);
                             if (context.mounted) {
-                              _showCupertinoToast(context, 'Memory terhapus.');
+                              _showCupertinoToast(context, 'Memory deleted.');
                             }
                           },
                           background: Container(
@@ -2770,7 +3017,7 @@ class _ResurfacePage extends ConsumerWidget {
                             HapticFeedback.mediumImpact();
                             await ref.read(memoryControllerProvider.notifier).deleteMemory(memory.id);
                             if (context.mounted) {
-                              _showCupertinoToast(context, 'Memory terhapus.');
+                              _showCupertinoToast(context, 'Memory deleted.');
                             }
                           },
                           background: Container(
@@ -2956,17 +3203,17 @@ class _SettingsPage extends ConsumerWidget {
                       final confirm = await showCupertinoDialog<bool>(
                         context: context,
                         builder: (context) => CupertinoAlertDialog(
-                          title: const Text('Hapus seluruh memory?'),
-                          content: const Text('Semua ide yang disimpan di HP ini akan hilang selamanya.'),
+                          title: const Text('Delete all memories?'),
+                          content: const Text('All ideas saved on this device will be lost forever.'),
                           actions: [
                             CupertinoDialogAction(
                               onPressed: () => Navigator.of(context).pop(false),
-                              child: const Text('Batal'),
+                              child: const Text('Cancel'),
                             ),
                             CupertinoDialogAction(
                               isDestructiveAction: true,
                               onPressed: () => Navigator.of(context).pop(true),
-                              child: const Text('Hapus Semua'),
+                              child: const Text('Delete All'),
                             ),
                           ],
                         ),
@@ -2975,7 +3222,7 @@ class _SettingsPage extends ConsumerWidget {
                         HapticFeedback.heavyImpact();
                         await _runWithBlockingLoader(
                           context,
-                          message: 'Mereset Vault...',
+                          message: 'Resetting Vault...',
                           action: () async {
                             final items = ref.read(memoryControllerProvider);
                             final notifier = ref.read(memoryControllerProvider.notifier);
@@ -2985,7 +3232,7 @@ class _SettingsPage extends ConsumerWidget {
                           },
                         );
                         if (context.mounted) {
-                          _showCupertinoToast(context, 'Vault telah dibersihkan.');
+                          _showCupertinoToast(context, 'Vault has been cleared.');
                         }
                       }
                     },
@@ -3270,7 +3517,7 @@ class _QuickCaptureSheetState extends ConsumerState<_QuickCaptureSheet> {
       await ref.read(memoryControllerProvider.notifier).addMemory(text);
       if (mounted) {
         Navigator.of(context).pop();
-        _showCupertinoToast(context, 'Memory tersimpan.');
+        _showCupertinoToast(context, 'Memory saved.');
       }
     } finally {
       if (mounted) {
@@ -3323,7 +3570,7 @@ class _QuickCaptureSheetState extends ConsumerState<_QuickCaptureSheet> {
               GestureDetector(
                 onTap: () => Navigator.of(context).pop(),
                 child: Text(
-                  'Batal',
+                  'Cancel',
                   style: OiyaStyles.captionStrong(color: OiyaStyles.primary),
                 ),
               ),
@@ -3340,7 +3587,7 @@ class _QuickCaptureSheetState extends ConsumerState<_QuickCaptureSheet> {
             onSubmitted: (_) => _save(),
             style: OiyaStyles.bodyText(color: isDark ? Colors.white : OiyaStyles.ink),
             decoration: InputDecoration(
-              hintText: 'Tulis cepat sebelum lupa...',
+              hintText: 'Write quickly before you forget...',
               hintStyle: TextStyle(
                 color: isDark ? Colors.white30 : Colors.black38,
                 fontSize: 16,
@@ -3424,29 +3671,184 @@ Future<void> _runWithBlockingLoader(
   }
 }
 
+String _formatSpecificSchedule(Reminder habit) {
+  if (habit.specificDate == null) return 'Activity Reminder';
+  final dateStr = DateFormat('MMM dd, yyyy').format(habit.specificDate!);
+  if (habit.specificHour != null) {
+    final hourStr = habit.specificHour!.toString().padLeft(2, '0');
+    return '$dateStr @ $hourStr:00';
+  }
+  return dateStr;
+}
+
+OverlayEntry? _activeToastEntry;
+
 void _showCupertinoToast(BuildContext context, String message) {
-  showCupertinoModalPopup<void>(
-    context: context,
-    builder: (context) => Padding(
-      padding: const EdgeInsets.fromLTRB(40, 0, 40, 80),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.85),
-          borderRadius: BorderRadius.circular(9999),
-        ),
-        child: Text(
-          message,
-          textAlign: TextAlign.center,
-          style: OiyaStyles.caption(color: Colors.white),
-        ),
+  if (_activeToastEntry != null) {
+    try {
+      _activeToastEntry!.remove();
+    } catch (_) {}
+    _activeToastEntry = null;
+  }
+
+  final overlayState = Overlay.of(context);
+  
+  late OverlayEntry entry;
+  entry = OverlayEntry(
+    builder: (context) => Positioned(
+      bottom: 80,
+      left: 40,
+      right: 40,
+      child: _FloatingToastWidget(
+        message: message,
+        onDismissed: () {
+          if (_activeToastEntry == entry) {
+            _activeToastEntry = null;
+          }
+          try {
+            entry.remove();
+          } catch (_) {}
+        },
       ),
     ),
   );
-  Future.delayed(const Duration(milliseconds: 1200), () {
-    if (!context.mounted) return;
-    if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+  
+  _activeToastEntry = entry;
+  overlayState.insert(entry);
+}
+
+class _FloatingToastWidget extends StatefulWidget {
+  final String message;
+  final VoidCallback onDismissed;
+
+  const _FloatingToastWidget({
+    required this.message,
+    required this.onDismissed,
   });
+
+  @override
+  State<_FloatingToastWidget> createState() => _FloatingToastWidgetState();
+}
+
+class _FloatingToastWidgetState extends State<_FloatingToastWidget> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _opacityAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+
+    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+
+    _slideAnimation = Tween<Offset>(begin: const Offset(0.0, 0.4), end: Offset.zero).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
+    );
+
+    _controller.forward().then((_) {
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (mounted) {
+          _controller.reverse().then((_) {
+            widget.onDismissed();
+          });
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Choose icon based on message content
+    IconData iconData = CupertinoIcons.info_circle_fill;
+    Color iconColor = isDark ? OiyaStyles.primaryOnDark : OiyaStyles.primary;
+    
+    final lowerMessage = widget.message.toLowerCase();
+    if (lowerMessage.contains('completed') || lowerMessage.contains('saved') || lowerMessage.contains('created') || lowerMessage.contains('done')) {
+      iconData = CupertinoIcons.checkmark_alt_circle_fill;
+      iconColor = const Color(0xFF30D158); // Green
+    } else if (lowerMessage.contains('deleted') || lowerMessage.contains('cleared') || lowerMessage.contains('resetting')) {
+      iconData = CupertinoIcons.trash_fill;
+      iconColor = const Color(0xFFFF453A); // Red
+    }
+
+    return IgnorePointer(
+      child: FadeTransition(
+        opacity: _opacityAnimation,
+        child: SlideTransition(
+          position: _slideAnimation,
+          child: Center(
+            child: Material(
+              type: MaterialType.transparency,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: isDark 
+                          ? Colors.black.withOpacity(0.65) 
+                          : Colors.white.withOpacity(0.75),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isDark 
+                            ? Colors.white.withOpacity(0.08) 
+                            : Colors.black.withOpacity(0.06),
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 16,
+                          spreadRadius: 4,
+                        )
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          iconData,
+                          color: iconColor,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 10),
+                        Flexible(
+                          child: Text(
+                            widget.message,
+                            style: OiyaStyles.caption(
+                              color: isDark ? Colors.white : OiyaStyles.ink,
+                            ).copyWith(
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 Future<void> _openEditMemoryDialog(
@@ -3467,18 +3869,18 @@ Future<void> _openEditMemoryDialog(
           minLines: 3,
           maxLines: 6,
           maxLength: 500,
-          placeholder: 'Isi memory',
+          placeholder: 'Memory content',
           style: const TextStyle(fontSize: 16),
         ),
       ),
       actions: [
         CupertinoDialogAction(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Batal'),
+          child: const Text('Cancel'),
         ),
         CupertinoDialogAction(
           onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-          child: const Text('Simpan'),
+          child: const Text('Save'),
         ),
       ],
     ),
@@ -3496,7 +3898,7 @@ Future<void> _openEditMemoryDialog(
 
   await _runWithBlockingLoader(
     context,
-    message: 'Menyimpan perubahan...',
+    message: 'Saving changes...',
     action: () => ref
         .read(memoryControllerProvider.notifier)
         .updateMemory(memory.id, nextText),
@@ -3511,17 +3913,17 @@ Future<void> _confirmDeleteMemory(
   final confirm = await showCupertinoDialog<bool>(
     context: context,
     builder: (context) => CupertinoAlertDialog(
-      title: const Text('Hapus memory?'),
-      content: const Text('Catatan ini akan hilang selamanya.'),
+      title: const Text('Delete memory?'),
+      content: const Text('This memory will be lost forever.'),
       actions: [
         CupertinoDialogAction(
           onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Batal'),
+          child: const Text('Cancel'),
         ),
         CupertinoDialogAction(
           isDestructiveAction: true,
           onPressed: () => Navigator.of(context).pop(true),
-          child: const Text('Hapus'),
+          child: const Text('Delete'),
         ),
       ],
     ),
@@ -3531,13 +3933,13 @@ Future<void> _confirmDeleteMemory(
     HapticFeedback.mediumImpact();
     await _runWithBlockingLoader(
       context,
-      message: 'Menghapus...',
+      message: 'Deleting...',
       action: () => ref
           .read(memoryControllerProvider.notifier)
           .deleteMemory(memory.id),
     );
     if (context.mounted) {
-      _showCupertinoToast(context, 'Memory terhapus.');
+      _showCupertinoToast(context, 'Memory deleted.');
     }
   }
 }
@@ -3871,3 +4273,634 @@ _StreakTierStyle _getStreakTierStyle(int streak, bool isDark) {
     textColor: isDark ? const Color(0xFF00F5FF) : const Color(0xFFC71585),
   );
 }
+
+void _checkAndShowStreakPromotion(BuildContext context, WidgetRef ref, String habitId, int oldStreak) {
+  final reminders = ref.read(reminderControllerProvider);
+  final updatedHabits = reminders.where((r) => r.id == habitId).toList();
+  if (updatedHabits.isEmpty) return;
+  final updatedHabit = updatedHabits.first;
+  final newStreak = updatedHabit.streakCount;
+
+  if (newStreak > oldStreak) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final oldStyle = _getStreakTierStyle(oldStreak, isDark);
+    final newStyle = _getStreakTierStyle(newStreak, isDark);
+
+    if (oldStyle.name != newStyle.name) {
+      _showStreakPromotionOverlay(context, updatedHabit, oldStreak, newStreak);
+    }
+  }
+}
+
+void _showStreakPromotionOverlay(BuildContext context, Reminder habit, int oldStreak, int newStreak) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  final oldStyle = _getStreakTierStyle(oldStreak, isDark);
+  final newStyle = _getStreakTierStyle(newStreak, isDark);
+
+  showGeneralDialog(
+    context: context,
+    barrierDismissible: false,
+    barrierLabel: 'Streak Promotion',
+    barrierColor: Colors.black.withOpacity(0.85),
+    transitionDuration: const Duration(milliseconds: 600),
+    pageBuilder: (context, anim1, anim2) {
+      return _StreakPromotionOverlayWidget(
+        habit: habit,
+        oldStreak: oldStreak,
+        newStreak: newStreak,
+        oldStyle: oldStyle,
+        newStyle: newStyle,
+      );
+    },
+    transitionBuilder: (context, anim1, anim2, child) {
+      final curve = CurvedAnimation(parent: anim1, curve: Curves.elasticOut);
+      return Transform.scale(
+        scale: curve.value,
+        child: FadeTransition(
+          opacity: anim1,
+          child: child,
+        ),
+      );
+    },
+  );
+}
+
+class _StreakPromotionOverlayWidget extends StatefulWidget {
+  final Reminder habit;
+  final int oldStreak;
+  final int newStreak;
+  final _StreakTierStyle oldStyle;
+  final _StreakTierStyle newStyle;
+
+  const _StreakPromotionOverlayWidget({
+    required this.habit,
+    required this.oldStreak,
+    required this.newStreak,
+    required this.oldStyle,
+    required this.newStyle,
+  });
+
+  @override
+  State<_StreakPromotionOverlayWidget> createState() => _StreakPromotionOverlayWidgetState();
+}
+
+class _StreakPromotionOverlayWidgetState extends State<_StreakPromotionOverlayWidget> with SingleTickerProviderStateMixin {
+  late AnimationController _animController;
+  late Animation<double> _pulseAnimation;
+  late Animation<double> _glowAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
+    );
+
+    _glowAnimation = Tween<double>(begin: 6.0, end: 18.0).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
+    );
+
+    _playCelebrationHaptics();
+  }
+
+  Future<void> _playCelebrationHaptics() async {
+    HapticFeedback.heavyImpact();
+    await Future.delayed(const Duration(milliseconds: 120));
+    HapticFeedback.mediumImpact();
+    await Future.delayed(const Duration(milliseconds: 90));
+    HapticFeedback.lightImpact();
+    await Future.delayed(const Duration(milliseconds: 60));
+    HapticFeedback.lightImpact();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Material(
+      color: Colors.transparent,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Positioned.fill(
+            child: _ArcadeParticleBurst(colors: widget.newStyle.gradientColors),
+          ),
+          Center(
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF0F1322) : const Color(0xFFFAF9F6),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: widget.newStyle.borderTint,
+                  width: 2.0,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: widget.newStyle.gradientColors.first.withOpacity(0.15),
+                    blurRadius: 24,
+                    spreadRadius: 4,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: widget.newStyle.bgTint,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: widget.newStyle.borderTint, width: 1),
+                    ),
+                    child: Text(
+                      'STREAK TIER UPGRADE!',
+                      style: OiyaStyles.tagline(color: widget.newStyle.textColor).copyWith(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.5,
+                        fontSize: 14,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Promoted to',
+                    style: OiyaStyles.caption(color: isDark ? OiyaStyles.bodyMuted : OiyaStyles.inkMuted80),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    widget.newStyle.name.toUpperCase(),
+                    style: OiyaStyles.displayMd(color: widget.newStyle.textColor).copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 32),
+                  AnimatedBuilder(
+                    animation: _animController,
+                    builder: (context, child) {
+                      return ScaleTransition(
+                        scale: _pulseAnimation,
+                        child: Container(
+                          width: 140,
+                          height: 140,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: widget.newStyle.bgTint,
+                            boxShadow: [
+                              BoxShadow(
+                                color: widget.newStyle.gradientColors.first.withOpacity(0.2),
+                                blurRadius: _glowAnimation.value,
+                                spreadRadius: _glowAnimation.value / 3,
+                              ),
+                            ],
+                            border: Border.all(
+                              color: widget.newStyle.borderTint,
+                              width: 2.0,
+                            ),
+                          ),
+                          child: Center(
+                            child: _GradientIcon(
+                              widget.newStyle.icon,
+                              colors: widget.newStyle.gradientColors,
+                              size: 72,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 28),
+                  Text(
+                    '${widget.newStreak} DAYS',
+                    style: OiyaStyles.displayLg(color: isDark ? Colors.white : OiyaStyles.ink).copyWith(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 36,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Keep your habit on "${widget.habit.title}" alive to unlock the next flame tier!',
+                    style: OiyaStyles.caption(color: isDark ? OiyaStyles.bodyMuted : OiyaStyles.inkMuted80),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: widget.newStyle.textColor,
+                        foregroundColor: isDark ? const Color(0xFF0F1322) : Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.of(context).pop();
+                      },
+                      child: Text(
+                        'AWESOME!',
+                        style: OiyaStyles.bodyStrong(
+                          color: isDark ? const Color(0xFF0F1322) : Colors.white,
+                        ).copyWith(fontWeight: FontWeight.w800, letterSpacing: 1.0),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ArcadeParticleBurst extends StatefulWidget {
+  final List<Color> colors;
+
+  const _ArcadeParticleBurst({required this.colors});
+
+  @override
+  State<_ArcadeParticleBurst> createState() => _ArcadeParticleBurstState();
+}
+
+class _ArcadeParticleBurstState extends State<_ArcadeParticleBurst> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late List<_Particle> _particles;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..forward();
+
+    final random = math.Random();
+    _particles = List.generate(80, (index) {
+      final angle = random.nextDouble() * 2 * math.pi;
+      final speed = 40.0 + random.nextDouble() * 180.0;
+      final size = 3.0 + random.nextDouble() * 6.0;
+      final colorIndex = random.nextInt(widget.colors.length);
+      return _Particle(
+        angle: angle,
+        speed: speed,
+        size: size,
+        color: widget.colors[colorIndex],
+        spinSpeed: -4.0 + random.nextDouble() * 8.0,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return CustomPaint(
+          size: Size.infinite,
+          painter: _ParticlePainter(
+            particles: _particles,
+            progress: _controller.value,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _Particle {
+  final double angle;
+  final double speed;
+  final double size;
+  final Color color;
+  final double spinSpeed;
+
+  const _Particle({
+    required this.angle,
+    required this.speed,
+    required this.size,
+    required this.color,
+    required this.spinSpeed,
+  });
+}
+
+class _ParticlePainter extends CustomPainter {
+  final List<_Particle> particles;
+  final double progress;
+
+  _ParticlePainter({required this.particles, required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final paint = Paint()..style = PaintingStyle.fill;
+
+    for (final particle in particles) {
+      final distance = particle.speed * progress;
+      final gravity = 200.0 * progress * progress;
+      
+      final dx = center.dx + math.cos(particle.angle) * distance;
+      final dy = center.dy + math.sin(particle.angle) * distance + gravity;
+
+      final alpha = (1.0 - progress).clamp(0.0, 1.0);
+      paint.color = particle.color.withOpacity(alpha);
+
+      canvas.save();
+      canvas.translate(dx, dy);
+      canvas.rotate(particle.spinSpeed * progress);
+      canvas.drawRect(
+        Rect.fromCenter(center: Offset.zero, width: particle.size, height: particle.size),
+        paint,
+      );
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+class _ExamPrepDashboard extends StatelessWidget {
+  final List<Reminder> examHabits;
+
+  const _ExamPrepDashboard({required this.examHabits});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // Sort habits so those with the closest exams appear first
+    final sortedHabits = List<Reminder>.from(examHabits)..sort((a, b) {
+      final aDays = _getMinDaysLeft(a);
+      final bDays = _getMinDaysLeft(b);
+      if (aDays == null && bDays == null) return 0;
+      if (aDays == null) return 1;
+      if (bDays == null) return -1;
+      return aDays.compareTo(bDays);
+    });
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            children: [
+              Icon(
+                CupertinoIcons.book_fill,
+                size: 16,
+                color: isDark ? OiyaStyles.primaryOnDark : OiyaStyles.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'EXAM PREP TRACKER',
+                style: OiyaStyles.captionStrong(
+                  color: isDark ? OiyaStyles.bodyMuted : OiyaStyles.inkMuted80,
+                ).copyWith(letterSpacing: 1.0),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 155,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: sortedHabits.length,
+            itemBuilder: (context, index) {
+              final habit = sortedHabits[index];
+              return _buildExamCard(context, habit, isDark);
+            },
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  int? _getMinDaysLeft(Reminder habit) {
+    final today = DateTime.now();
+    final todayStart = DateTime(today.year, today.month, today.day);
+    int? minDays;
+    for (final examDate in habit.examDates) {
+      final examStart = DateTime(examDate.year, examDate.month, examDate.day);
+      final diff = examStart.difference(todayStart).inDays;
+      if (diff >= 0) {
+        if (minDays == null || diff < minDays) {
+          minDays = diff;
+        }
+      }
+    }
+    return minDays;
+  }
+
+  Widget _buildExamCard(BuildContext context, Reminder habit, bool isDark) {
+    final today = DateTime.now();
+    final todayStart = DateTime(today.year, today.month, today.day);
+
+    DateTime? nextExam;
+    int? daysLeft;
+
+    for (final examDate in habit.examDates) {
+      final examStart = DateTime(examDate.year, examDate.month, examDate.day);
+      final difference = examStart.difference(todayStart).inDays;
+      if (difference >= 0) {
+        if (daysLeft == null || difference < daysLeft) {
+          daysLeft = difference;
+          nextExam = examDate;
+        }
+      }
+    }
+
+    final displayDate = nextExam != null 
+        ? DateFormat('MMM dd, yyyy').format(nextExam) 
+        : (habit.examDates.isNotEmpty ? DateFormat('MMM dd, yyyy').format(habit.examDates.first) : 'No date');
+
+    final totalPreps = habit.examPrepDates.length;
+    final completedPreps = habit.completedDates.where((d) {
+      final local = d.toLocal();
+      final normD = DateTime(local.year, local.month, local.day);
+      return habit.examPrepDates.any((p) => p.year == normD.year && p.month == normD.month && p.day == normD.day);
+    }).length;
+    
+    final progressPercent = totalPreps > 0 ? (completedPreps / totalPreps) : 0.0;
+
+    Color badgeBg;
+    Color badgeText;
+    String badgeLabel;
+    IconData? badgeIcon;
+    bool isPulse = false;
+
+    if (daysLeft == null) {
+      badgeBg = isDark ? Colors.white10 : Colors.black12;
+      badgeText = isDark ? OiyaStyles.bodyMuted : OiyaStyles.inkMuted80;
+      badgeLabel = 'No upcoming';
+    } else if (daysLeft == 0) {
+      badgeBg = const Color(0xFFFF3B30).withOpacity(0.15);
+      badgeText = const Color(0xFFFF453A);
+      badgeLabel = 'EXAM TODAY';
+      badgeIcon = CupertinoIcons.exclamationmark_circle_fill;
+      isPulse = true;
+    } else if (daysLeft == 1) {
+      badgeBg = const Color(0xFFFF9500).withOpacity(0.15);
+      badgeText = const Color(0xFFFF9F0A);
+      badgeLabel = 'PREP ACTIVE';
+      badgeIcon = CupertinoIcons.bolt_fill;
+      isPulse = true;
+    } else {
+      badgeBg = isDark ? OiyaStyles.primaryOnDark.withOpacity(0.1) : OiyaStyles.primary.withOpacity(0.08);
+      badgeText = isDark ? OiyaStyles.primaryOnDark : OiyaStyles.primary;
+      badgeLabel = 'T-${daysLeft}d';
+    }
+
+    return Container(
+      width: 290,
+      margin: const EdgeInsets.only(right: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? OiyaStyles.surfaceTile1 : OiyaStyles.canvas,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isPulse 
+              ? badgeText.withOpacity(0.4) 
+              : (isDark ? Colors.white10 : OiyaStyles.dividerSoft),
+          width: isPulse ? 1.5 : 1.0,
+        ),
+        boxShadow: isPulse ? [
+          BoxShadow(
+            color: badgeText.withOpacity(0.08),
+            blurRadius: 10,
+            spreadRadius: 2,
+          )
+        ] : null,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  habit.title,
+                  style: OiyaStyles.bodyStrong(color: isDark ? Colors.white : OiyaStyles.ink),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: badgeBg,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (badgeIcon != null) ...[
+                      Icon(
+                        badgeIcon,
+                        size: 10,
+                        color: badgeText,
+                      ),
+                      const SizedBox(width: 4),
+                    ],
+                    Text(
+                      badgeLabel,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: badgeText,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            nextExam != null 
+                ? 'Next Exam: $displayDate' 
+                : 'All Exams Completed',
+            style: OiyaStyles.finePrint(
+              color: isDark ? OiyaStyles.bodyMuted : OiyaStyles.inkMuted80,
+            ),
+          ),
+          const Spacer(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Prep Progress',
+                style: OiyaStyles.finePrint(
+                  color: isDark ? OiyaStyles.bodyMuted : OiyaStyles.inkMuted80,
+                ).copyWith(fontSize: 11),
+              ),
+              Text(
+                '$completedPreps/$totalPreps preps done',
+                style: OiyaStyles.captionStrong(
+                  color: isDark ? OiyaStyles.primaryOnDark : OiyaStyles.primary,
+                ).copyWith(fontSize: 11),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: Stack(
+              children: [
+                Container(
+                  height: 8,
+                  width: double.infinity,
+                  color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
+                ),
+                FractionallySizedBox(
+                  widthFactor: progressPercent.clamp(0.0, 1.0),
+                  child: Container(
+                    height: 8,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: isDark 
+                            ? [const Color(0xFF30D158), const Color(0xFF34C759)]
+                            : [const Color(0xFF24B14B), const Color(0xFF34C759)],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+

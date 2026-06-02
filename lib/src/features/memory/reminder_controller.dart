@@ -35,6 +35,8 @@ class ReminderController extends StateNotifier<List<Reminder>> {
     required String scheduleType,
     List<int> weeklyDays = const [],
     List<DateTime> examDates = const [],
+    DateTime? specificDate,
+    int? specificHour,
   }) async {
     final titleTrimmed = title.trim();
     if (titleTrimmed.isEmpty) {
@@ -63,6 +65,8 @@ class ReminderController extends StateNotifier<List<Reminder>> {
       completedDates: const [],
       completedProofs: const {},
       createdAt: DateTime.now(),
+      specificDate: specificDate,
+      specificHour: specificHour,
     );
 
     await _repository.save(reminder);
