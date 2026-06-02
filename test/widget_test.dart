@@ -1,11 +1,12 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oiya/src/app.dart';
-import 'package:oiya/src/features/memory/memory_note.dart';
-import 'package:oiya/src/features/memory/memory_repository.dart';
-import 'package:oiya/src/features/settings/theme_repository.dart';
+import 'package:oiya/src/features/journal/models/journal_note.dart';
+import 'package:oiya/src/features/journal/repositories/journal_repository.dart';
+import 'package:oiya/src/features/settings/repositories/theme_repository.dart';
 
 void main() {
   testWidgets('quick capture stores and shows memory in home', (
@@ -14,22 +15,23 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          memoryRepositoryProvider
-              .overrideWithValue(_InMemoryMemoryRepository()),
+          journalRepositoryProvider
+              .overrideWithValue(_InMemoryJournalRepository()),
           themeRepositoryProvider.overrideWithValue(_InMemoryThemeRepository()),
         ],
         child: const OiyaApp(),
       ),
     );
 
-    await tester.tap(find.text('Capture'));
-    await tester.pump();
+    // Click on the plus button to open quick capture
+    await tester.tap(find.byIcon(CupertinoIcons.plus));
+    await tester.pumpAndSettle();
 
     await tester.enterText(
       find.byType(TextField).first,
       'Parkir di basement B2',
     );
-    await tester.tap(find.text('Simpan Memory'));
+    await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Parkir di basement B2'), findsOneWidget);
@@ -41,29 +43,33 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          memoryRepositoryProvider.overrideWithValue(_InMemoryMemoryRepository()),
+          journalRepositoryProvider.overrideWithValue(_InMemoryJournalRepository()),
           themeRepositoryProvider.overrideWithValue(_InMemoryThemeRepository()),
         ],
         child: const OiyaApp(),
       ),
     );
 
-    await tester.tap(find.text('Capture'));
-    await tester.pump();
+    // Tap plus to open quick capture
+    await tester.tap(find.byIcon(CupertinoIcons.plus));
+    await tester.pumpAndSettle();
+    
     await tester.enterText(
-      find.byKey(const ValueKey<String>('capture-input')),
+      find.byType(TextField).first,
       'Memory lama',
     );
-    await tester.tap(find.text('Simpan Memory'));
+    await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
+    // Tap the memory card text to edit it
     await tester.tap(find.text('Memory lama'));
     await tester.pumpAndSettle();
+    
     await tester.enterText(
-      find.byKey(const ValueKey<String>('edit-memory-input')),
+      find.byType(CupertinoTextField),
       'Memory baru',
     );
-    await tester.tap(find.text('Simpan Perubahan'));
+    await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
     expect(find.text('Memory baru'), findsOneWidget);
@@ -74,40 +80,43 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          memoryRepositoryProvider.overrideWithValue(_InMemoryMemoryRepository()),
+          journalRepositoryProvider.overrideWithValue(_InMemoryJournalRepository()),
           themeRepositoryProvider.overrideWithValue(_InMemoryThemeRepository()),
         ],
         child: const OiyaApp(),
       ),
     );
 
-    await tester.tap(find.text('Capture'));
-    await tester.pump();
+    // Tap plus to open quick capture
+    await tester.tap(find.byIcon(CupertinoIcons.plus));
+    await tester.pumpAndSettle();
+    
     await tester.enterText(
-      find.byKey(const ValueKey<String>('capture-input')),
+      find.byType(TextField).first,
       'Memory untuk dihapus',
     );
-    await tester.tap(find.text('Simpan Memory'));
+    await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.delete_outline).first);
+    // Tap the delete button on the card
+    await tester.tap(find.byIcon(CupertinoIcons.delete).first);
     await tester.pumpAndSettle();
-    expect(find.text('Hapus memory ini?'), findsOneWidget);
+    expect(find.text('Delete memory?'), findsOneWidget);
 
-    await tester.tap(find.text('Hapus'));
+    await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
     expect(find.text('Memory untuk dihapus'), findsNothing);
   });
 }
 
-class _InMemoryMemoryRepository implements MemoryRepository {
-  final List<MemoryNote> _data = <MemoryNote>[];
+class _InMemoryJournalRepository implements JournalRepository {
+  final List<JournalNote> _data = <JournalNote>[];
 
   @override
   Future<void> add(String text) async {
     final now = DateTime.now();
     _data.add(
-      MemoryNote(
+      JournalNote(
         id: '${_data.length + 1}',
         text: text,
         createdAt: now,
@@ -133,8 +142,8 @@ class _InMemoryMemoryRepository implements MemoryRepository {
   }
 
   @override
-  Future<List<MemoryNote>> getAll() async {
-    final items = List<MemoryNote>.from(_data)
+  Future<List<JournalNote>> getAll() async {
+    final items = List<JournalNote>.from(_data)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return items;
   }

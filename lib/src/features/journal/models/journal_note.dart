@@ -1,5 +1,5 @@
-class MemoryNote {
-  const MemoryNote({
+class JournalNote {
+  const JournalNote({
     required this.id,
     required this.text,
     required this.createdAt,
@@ -11,13 +11,13 @@ class MemoryNote {
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  MemoryNote copyWith({
+  JournalNote copyWith({
     String? id,
     String? text,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
-    return MemoryNote(
+    return JournalNote(
       id: id ?? this.id,
       text: text ?? this.text,
       createdAt: createdAt ?? this.createdAt,
@@ -34,8 +34,8 @@ class MemoryNote {
     };
   }
 
-  static MemoryNote fromMap(Map<dynamic, dynamic> map) {
-    return MemoryNote(
+  static JournalNote fromMap(Map<dynamic, dynamic> map) {
+    return JournalNote(
       id: map['id'] as String,
       text: map['text'] as String,
       createdAt: DateTime.parse(map['createdAt'] as String),

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'features/settings/theme_mode_controller.dart';
-import 'ui/main_shell.dart';
+import 'features/settings/controllers/theme_mode_controller.dart';
+import 'ui/screens/main_shell_screen.dart';
 
 class OiyaApp extends ConsumerWidget {
   const OiyaApp({super.key});

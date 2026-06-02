@@ -1,28 +1,28 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
-import 'reminder.dart';
-import 'reminder_repository.dart';
+import '../models/habit.dart';
+import '../repositories/habit_repository.dart';
 
-final reminderControllerProvider =
-    StateNotifierProvider<ReminderController, List<Reminder>>((ref) {
-  final repository = ref.watch(reminderRepositoryProvider);
-  return ReminderController(repository);
+final habitControllerProvider =
+    StateNotifierProvider<HabitController, List<Habit>>((ref) {
+  final repository = ref.watch(habitRepositoryProvider);
+  return HabitController(repository);
 });
 
-/// Exposes active reminders scheduled for today
-final activeRemindersForTodayProvider = Provider<List<Reminder>>((ref) {
-  final reminders = ref.watch(reminderControllerProvider);
+/// Exposes active habits scheduled for today
+final activeHabitsForTodayProvider = Provider<List<Habit>>((ref) {
+  final habits = ref.watch(habitControllerProvider);
   final today = DateTime.now();
-  return reminders.where((r) => r.isScheduledFor(today)).toList();
+  return habits.where((r) => r.isScheduledFor(today)).toList();
 });
 
-class ReminderController extends StateNotifier<List<Reminder>> {
-  ReminderController(this._repository) : super(const []) {
+class HabitController extends StateNotifier<List<Habit>> {
+  HabitController(this._repository) : super(const []) {
     _load();
   }
 
-  final ReminderRepository _repository;
+  final HabitRepository _repository;
   final Uuid _uuid = const Uuid();
 
   Future<void> _load() async {
@@ -54,7 +54,7 @@ class ReminderController extends StateNotifier<List<Reminder>> {
     }
 
     final id = _uuid.v4();
-    final reminder = Reminder(
+    final habit = Habit(
       id: id,
       title: titleTrimmed,
       proofType: proofType,
@@ -69,7 +69,7 @@ class ReminderController extends StateNotifier<List<Reminder>> {
       specificHour: specificHour,
     );
 
-    await _repository.save(reminder);
+    await _repository.save(habit);
     await _load();
   }
 
@@ -78,21 +78,21 @@ class ReminderController extends StateNotifier<List<Reminder>> {
     String? proofCaption,
     String? proofData,
   }) async {
-    final reminder = state.firstWhere((r) => r.id == id);
+    final habit = state.firstWhere((r) => r.id == id);
     final today = DateTime.now();
     final todayNormalized = DateTime(today.year, today.month, today.day);
 
-    if (reminder.isCompletedOn(todayNormalized)) {
+    if (habit.isCompletedOn(todayNormalized)) {
       return; // Already completed today
     }
 
-    final updatedCompletedDates = List<DateTime>.from(reminder.completedDates)
+    final updatedCompletedDates = List<DateTime>.from(habit.completedDates)
       ..add(todayNormalized);
 
-    final updatedCompletedProofs = Map<String, String>.from(reminder.completedProofs);
+    final updatedCompletedProofs = Map<String, String>.from(habit.completedProofs);
     final todayKey = "${todayNormalized.year}-${todayNormalized.month.toString().padLeft(2, '0')}-${todayNormalized.day.toString().padLeft(2, '0')}";
 
-    if (reminder.proofType != 'none') {
+    if (habit.proofType != 'none') {
       final captionText = proofCaption?.trim() ?? '';
       final dataText = proofData ?? 'Done';
       updatedCompletedProofs[todayKey] = captionText.isNotEmpty 
@@ -100,42 +100,41 @@ class ReminderController extends StateNotifier<List<Reminder>> {
           : dataText;
     }
 
-    final updatedReminder = reminder.copyWith(
+    final updatedHabit = habit.copyWith(
       completedDates: updatedCompletedDates,
       completedProofs: updatedCompletedProofs,
     );
 
-    await _repository.save(updatedReminder);
+    await _repository.save(updatedHabit);
     await _load();
-
   }
 
   Future<void> restoreStreak(String id, DateTime missedDate) async {
-    final reminder = state.firstWhere((r) => r.id == id);
-    if (reminder.restoreChances <= 0) {
+    final habit = state.firstWhere((r) => r.id == id);
+    if (habit.restoreChances <= 0) {
       return;
     }
 
     final dateNormalized = DateTime(missedDate.year, missedDate.month, missedDate.day);
-    if (reminder.isCompletedOn(dateNormalized)) {
+    if (habit.isCompletedOn(dateNormalized)) {
       return;
     }
 
-    final updatedCompletedDates = List<DateTime>.from(reminder.completedDates)
+    final updatedCompletedDates = List<DateTime>.from(habit.completedDates)
       ..add(dateNormalized)
       ..sort();
 
-    final updatedCompletedProofs = Map<String, String>.from(reminder.completedProofs);
+    final updatedCompletedProofs = Map<String, String>.from(habit.completedProofs);
     final dateKey = "${dateNormalized.year}-${dateNormalized.month.toString().padLeft(2, '0')}-${dateNormalized.day.toString().padLeft(2, '0')}";
     updatedCompletedProofs[dateKey] = "[RESTORED]";
 
-    final updatedReminder = reminder.copyWith(
+    final updatedHabit = habit.copyWith(
       completedDates: updatedCompletedDates,
       completedProofs: updatedCompletedProofs,
-      restoreChances: reminder.restoreChances - 1,
+      restoreChances: habit.restoreChances - 1,
     );
 
-    await _repository.save(updatedReminder);
+    await _repository.save(updatedHabit);
     await _load();
   }
 

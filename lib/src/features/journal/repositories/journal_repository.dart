@@ -2,28 +2,28 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 
-import 'memory_note.dart';
+import '../models/journal_note.dart';
 
-abstract class MemoryRepository {
-  Future<List<MemoryNote>> getAll();
+abstract class JournalRepository {
+  Future<List<JournalNote>> getAll();
   Future<void> add(String text);
   Future<void> update(String id, String text);
   Future<void> delete(String id);
 }
 
-final memoryRepositoryProvider = Provider<MemoryRepository>((ref) {
-  throw UnimplementedError('MemoryRepository override is required');
+final journalRepositoryProvider = Provider<JournalRepository>((ref) {
+  throw UnimplementedError('JournalRepository override is required');
 });
 
-class HiveMemoryRepository implements MemoryRepository {
-  HiveMemoryRepository(this._box);
+class HiveJournalRepository implements JournalRepository {
+  HiveJournalRepository(this._box);
 
   final Box<Map> _box;
   final Uuid _uuid = const Uuid();
 
   @override
-  Future<List<MemoryNote>> getAll() async {
-    final notes = _box.values.map(MemoryNote.fromMap).toList(growable: false)
+  Future<List<JournalNote>> getAll() async {
+    final notes = _box.values.map(JournalNote.fromMap).toList(growable: false)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return notes;
   }
@@ -32,7 +32,7 @@ class HiveMemoryRepository implements MemoryRepository {
   Future<void> add(String text) async {
     final now = DateTime.now();
     final id = _uuid.v4();
-    final note = MemoryNote(
+    final note = JournalNote(
       id: id,
       text: text,
       createdAt: now,
@@ -48,7 +48,7 @@ class HiveMemoryRepository implements MemoryRepository {
       return;
     }
 
-    final previous = MemoryNote.fromMap(existing);
+    final previous = JournalNote.fromMap(existing);
     final updated = previous.copyWith(text: text, updatedAt: DateTime.now());
     await _box.put(id, updated.toMap());
   }

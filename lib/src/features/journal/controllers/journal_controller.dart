@@ -1,12 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'memory_note.dart';
-import 'memory_repository.dart';
+import '../models/journal_note.dart';
+import '../repositories/journal_repository.dart';
 
-final memoryControllerProvider =
-    StateNotifierProvider<MemoryController, List<MemoryNote>>((ref) {
-  final repository = ref.watch(memoryRepositoryProvider);
-  return MemoryController(repository);
+final journalControllerProvider =
+    StateNotifierProvider<JournalController, List<JournalNote>>((ref) {
+  final repository = ref.watch(journalRepositoryProvider);
+  return JournalController(repository);
 });
 
 enum SearchFilter { all, today, recent }
@@ -14,12 +14,12 @@ final searchFilterProvider = StateProvider<SearchFilter>((ref) => SearchFilter.a
 
 final searchQueryProvider = StateProvider<String>((ref) => '');
 
-final filteredMemoriesProvider = Provider<List<MemoryNote>>((ref) {
+final filteredJournalNotesProvider = Provider<List<JournalNote>>((ref) {
   final query = ref.watch(searchQueryProvider).trim().toLowerCase();
   final filter = ref.watch(searchFilterProvider);
-  final notes = ref.watch(memoryControllerProvider);
+  final notes = ref.watch(journalControllerProvider);
 
-  Iterable<MemoryNote> filtered = notes;
+  Iterable<JournalNote> filtered = notes;
   if (query.isNotEmpty) {
     filtered = filtered.where((note) => note.text.toLowerCase().contains(query));
   }
@@ -47,8 +47,8 @@ final filteredMemoriesProvider = Provider<List<MemoryNote>>((ref) {
   return filtered.toList(growable: false);
 });
 
-final resurfacedMemoriesProvider = Provider<List<MemoryNote>>((ref) {
-  final notes = ref.watch(memoryControllerProvider);
+final resurfacedJournalNotesProvider = Provider<List<JournalNote>>((ref) {
+  final notes = ref.watch(journalControllerProvider);
   final today = DateTime.now();
   const interestingDays = <int>{7, 14, 30};
 
@@ -66,12 +66,12 @@ final resurfacedMemoriesProvider = Provider<List<MemoryNote>>((ref) {
 
 final thoughtDumpModeProvider = StateProvider<bool>((ref) => false);
 
-class MemoryController extends StateNotifier<List<MemoryNote>> {
-  MemoryController(this._repository) : super(const []) {
+class JournalController extends StateNotifier<List<JournalNote>> {
+  JournalController(this._repository) : super(const []) {
     _load();
   }
 
-  final MemoryRepository _repository;
+  final JournalRepository _repository;
 
   Future<void> _load() async {
     state = await _repository.getAll();

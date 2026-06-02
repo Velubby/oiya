@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'memory_controller.dart';
-import 'reminder_controller.dart';
+import '../../journal/controllers/journal_controller.dart';
+import '../../habits/controllers/habit_controller.dart';
 
 class StreakInfo {
   const StreakInfo({
@@ -16,8 +16,8 @@ class StreakInfo {
 }
 
 final streakProvider = Provider<StreakInfo>((ref) {
-  final memories = ref.watch(memoryControllerProvider);
-  final reminders = ref.watch(reminderControllerProvider);
+  final memories = ref.watch(journalControllerProvider);
+  final habits = ref.watch(habitControllerProvider);
 
   String formatDate(DateTime dt) {
     final local = dt.toLocal();
@@ -30,8 +30,8 @@ final streakProvider = Provider<StreakInfo>((ref) {
     activeDates.add(formatDate(note.createdAt));
   }
 
-  for (final reminder in reminders) {
-    for (final completedDate in reminder.completedDates) {
+  for (final habit in habits) {
+    for (final completedDate in habit.completedDates) {
       activeDates.add(formatDate(completedDate));
     }
   }

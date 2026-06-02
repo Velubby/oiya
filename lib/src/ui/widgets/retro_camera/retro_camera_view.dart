@@ -6,8 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../features/memory/reminder_controller.dart';
-import 'main_shell.dart';
+import '../../../features/habits/controllers/habit_controller.dart';
+import '../../style/oiya_styles.dart';
+import '../oiya_button.dart';
 
 class RetroCameraView extends ConsumerStatefulWidget {
   const RetroCameraView({
@@ -155,7 +156,7 @@ class _RetroCameraViewState extends ConsumerState<RetroCameraView> with SingleTi
     final caption = _captionController.text.trim();
 
     // Call complete reminder
-    await ref.read(reminderControllerProvider.notifier).completeReminder(
+    await ref.read(habitControllerProvider.notifier).completeReminder(
       widget.reminderId,
       proofCaption: caption.isNotEmpty ? caption : 'Verified Polaroid Proof',
       proofData: 'Polaroid #OIYA-${math.Random().nextInt(9000) + 1000}',
@@ -266,7 +267,7 @@ class _RetroCameraViewState extends ConsumerState<RetroCameraView> with SingleTi
                                   child: GridOverlay(),
                                 ),
                               ),
-                              // Live Status HUD
+                              // Live HUD
                               Positioned(
                                 top: 12,
                                 left: 12,

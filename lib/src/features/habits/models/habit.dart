@@ -1,5 +1,5 @@
-class Reminder {
-  const Reminder({
+class Habit {
+  const Habit({
     required this.id,
     required this.title,
     required this.proofType, // 'none', 'text', 'image', 'video'
@@ -7,7 +7,7 @@ class Reminder {
     this.weeklyDays = const [], // 1 = Mon, 7 = Sun
     this.examDates = const [], // Selected exam dates
     this.examPrepDates = const [], // Generated study sessions (1 day before each exam)
-    this.completedDates = const [], // Days this reminder was completed (normalized to YYYY-MM-DD)
+    this.completedDates = const [], // Days this habit was completed (normalized to YYYY-MM-DD)
     this.completedProofs = const {}, // Map of date string -> proof caption/text
     required this.createdAt,
     this.restoreChances = 3,
@@ -29,7 +29,7 @@ class Reminder {
   final DateTime? specificDate;
   final int? specificHour;
 
-  Reminder copyWith({
+  Habit copyWith({
     String? id,
     String? title,
     String? proofType,
@@ -44,7 +44,7 @@ class Reminder {
     DateTime? specificDate,
     int? specificHour,
   }) {
-    return Reminder(
+    return Habit(
       id: id ?? this.id,
       title: title ?? this.title,
       proofType: proofType ?? this.proofType,
@@ -79,10 +79,10 @@ class Reminder {
     };
   }
 
-  static Reminder fromMap(Map<dynamic, dynamic> map) {
+  static Habit fromMap(Map<dynamic, dynamic> map) {
     final rawScheduleType = map['scheduleType'] as String;
     final scheduleType = rawScheduleType == 'weekly' ? 'custom' : rawScheduleType;
-    return Reminder(
+    return Habit(
       id: map['id'] as String,
       title: map['title'] as String,
       proofType: map['proofType'] as String,
@@ -105,7 +105,7 @@ class Reminder {
     );
   }
 
-  /// Check if the reminder is active / scheduled for a given date
+  /// Check if the habit is active / scheduled for a given date
   bool isScheduledFor(DateTime date) {
     final checkDate = DateTime(date.year, date.month, date.day);
 
@@ -128,7 +128,7 @@ class Reminder {
     return false;
   }
 
-  /// Check if the reminder was completed on a given date
+  /// Check if the habit was completed on a given date
   bool isCompletedOn(DateTime date) {
     final checkDate = DateTime(date.year, date.month, date.day);
     return completedDates.any((completedDate) =>
