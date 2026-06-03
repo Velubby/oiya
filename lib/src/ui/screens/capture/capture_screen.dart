@@ -95,11 +95,6 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'New Memory.',
-                style: OiyaStyles.displayLg(color: isDark ? Colors.white : OiyaStyles.ink),
-              ),
-              const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(

@@ -165,37 +165,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          // Header title and subtitle
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _homeTab == 0 ? 'Vault.' : 'Habits.',
-                    style: OiyaStyles.displayLg(
-                      color: isDark ? Colors.white : OiyaStyles.ink,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _homeTab == 0
-                        ? 'Remember everything, instantly.'
-                        : 'Daily routines and exam study plans.',
-                    style: OiyaStyles.leadAiry(
-                      color: isDark ? OiyaStyles.bodyMuted : OiyaStyles.inkMuted48,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
           // Sliding Segment Toggle
           SliverToBoxAdapter(
             child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              margin: const EdgeInsets.fromLTRB(20, 16, 20, 10),
               decoration: BoxDecoration(
                 color: isDark ? OiyaStyles.surfaceTile3 : OiyaStyles.surfacePearl,
                 borderRadius: BorderRadius.circular(12),

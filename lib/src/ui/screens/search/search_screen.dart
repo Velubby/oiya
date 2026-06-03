@@ -64,11 +64,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Search.',
-                      style: OiyaStyles.displayLg(color: isDark ? Colors.white : OiyaStyles.ink),
-                    ),
-                    const SizedBox(height: 16),
                     TextField(
                       controller: _controller,
                       onChanged: (value) =>

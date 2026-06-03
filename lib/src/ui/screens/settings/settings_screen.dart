@@ -28,12 +28,6 @@ class SettingsScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Settings.',
-                style: OiyaStyles.displayLg(color: isDark ? Colors.white : OiyaStyles.ink),
-              ),
-              const SizedBox(height: 20),
-              
               _SettingsGroup(
                 title: 'Appearance',
                 children: [

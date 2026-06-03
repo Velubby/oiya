@@ -31,25 +31,7 @@ class ResurfaceScreen extends ConsumerWidget {
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Resurface.',
-                      style: OiyaStyles.displayLg(color: isDark ? Colors.white : OiyaStyles.ink),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Ideas automatically surface at 7, 14, and 30-day intervals so they are never forgotten.',
-                      style: OiyaStyles.leadAiry(color: isDark ? OiyaStyles.bodyMuted : OiyaStyles.inkMuted48),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+
             if (resurfaced.isEmpty)
               SliverFillRemaining(
                 hasScrollBody: false,
@@ -87,7 +69,7 @@ class ResurfaceScreen extends ConsumerWidget {
               )
             else if (crossAxisCount == 1)
               SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
@@ -127,7 +109,7 @@ class ResurfaceScreen extends ConsumerWidget {
               )
             else
               SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                 sliver: SliverGrid(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
